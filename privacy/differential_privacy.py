@@ -132,7 +132,13 @@ class DifferentialPrivacyEngine:
         noise_multiplier: float = 1.0,
         dataset_size: int = 1000,
         batch_size: int = 32,
+        **kwargs
     ):
+        target_epsilon = kwargs.get("epsilon", target_epsilon)
+        target_delta = kwargs.get("delta", target_delta)
+        initial_max_norm = kwargs.get("max_grad_norm", initial_max_norm)
+        self.enabled = kwargs.get("enabled", True)
+        
         self.target_epsilon = target_epsilon
         self.target_delta = target_delta
         self.noise_multiplier = noise_multiplier

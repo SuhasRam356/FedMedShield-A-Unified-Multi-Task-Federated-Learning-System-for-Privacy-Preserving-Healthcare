@@ -1,82 +1,46 @@
-type MessageHandler = (data: any) => void;
+// ═══════════════════════════════════════════════════════════════
+// FedMedShield — Real-time Socket & WebSocket Service
+// Supports automatic reconnects and polling fallback
+// ═══════════════════════════════════════════════════════════════
+
+import { io, Socket } from 'socket.io-client';
 
 class SocketService {
-  private ws: WebSocket | null = null;
-  private listeners: Map<string, Set<MessageHandler>> = new Map();
-  private reconnectInterval: number = 3000;
-  private currentTaskId: number | null = null;
+  private socket: Socket | null = null;
 
-  public connect(taskId: number) {
-    if (this.ws && this.currentTaskId === taskId) {
-      return;
-    }
-    this.currentTaskId = taskId;
-    this.disconnect();
+  connect(): Socket {
+    if (!this.socket) {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      this.socket = io(apiUrl, {
+        transports: ['websocket', 'polling'],  // ⬅️ fallback to polling
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        timeout: 10000,
+      });
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/${taskId}`;
+      this.socket.on('connect', () => {
+        console.log('✅ WebSocket connected:', this.socket?.id);
+      });
 
-    try {
-      this.ws = new WebSocket(wsUrl);
-
-      this.ws.onopen = () => {
-        console.log(`[SocketService] Connected to FL Task ${taskId}`);
-        this.emit('open', { taskId });
-      };
-
-      this.ws.onmessage = (event) => {
-        try {
-          const parsed = JSON.parse(event.data);
-          this.emit('message', parsed);
-          if (parsed.type) {
-            this.emit(parsed.type, parsed.payload || parsed);
-          }
-        } catch (e) {
-          console.warn('[SocketService] Non-JSON payload received:', event.data);
+      this.socket.on('disconnect', (reason) => {
+        console.log('⚠️ WebSocket disconnected:', reason);
+        // Auto-reconnect if server dropped connection
+        if (reason === 'io server disconnect') {
+          this.socket?.connect();
         }
-      };
+      });
 
-      this.ws.onclose = () => {
-        console.log('[SocketService] WebSocket closed');
-        this.emit('close', {});
-      };
-
-      this.ws.onerror = (err) => {
-        console.warn('[SocketService] WebSocket error, operating in resilient mode');
-        this.emit('error', err);
-      };
-    } catch (err) {
-      console.warn('[SocketService] WebSocket connection failed to establish');
+      this.socket.on('connect_error', (error) => {
+        console.error('❌ WebSocket error:', error.message);
+      });
     }
+    return this.socket;
   }
 
-  public subscribe(event: string, handler: MessageHandler) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
-    this.listeners.get(event)?.add(handler);
-    return () => this.unsubscribe(event, handler);
-  }
-
-  public unsubscribe(event: string, handler: MessageHandler) {
-    this.listeners.get(event)?.delete(handler);
-  }
-
-  private emit(event: string, data: any) {
-    this.listeners.get(event)?.forEach((handler) => handler(data));
-  }
-
-  public send(data: any) {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
-    }
-  }
-
-  public disconnect() {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+  disconnect(): void {
+    this.socket?.disconnect();
+    this.socket = null;
   }
 }
 

@@ -256,6 +256,11 @@ class HospitalClient(fl.client.NumPyClient):
         return float(loss), num_samples, metrics
 
 
+# Exported alias
+FLClient = HospitalClient
+
+
+
 def start_client(
     client_id: str,
     server_address: str = "127.0.0.1:8080",

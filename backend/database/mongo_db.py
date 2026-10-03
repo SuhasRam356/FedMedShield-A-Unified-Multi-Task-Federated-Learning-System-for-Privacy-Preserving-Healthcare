@@ -1,18 +1,25 @@
 """
-MongoDB Document Database Manager
-FedMedShield Framework - Unstructured Healthcare Logs & Raw Audit Trail
+═══════════════════════════════════════════════════════════════
+FedMedShield — MongoDB Document Database Manager
+Features connection retries, serverSelectionTimeoutMS,
+ping health checks, and in-memory fallback.
+═══════════════════════════════════════════════════════════════
 """
 
 import os
+import time
 import logging
 from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
 
+from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+
 load_dotenv()
 logger = logging.getLogger("FedMedShield.MongoDB")
 
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "fedmedshield_logs")
+MONGO_URL = os.getenv("MONGODB_URL", os.getenv("MONGO_URL", "mongodb://localhost:27017/"))
+MONGO_DB_NAME = os.getenv("MONGODB_DB", os.getenv("MONGO_DB_NAME", "fedmedshield"))
 
 
 class InMemoryFallbackCollection:
@@ -42,10 +49,48 @@ class InMemoryFallbackDB:
         return self.collections[item]
 
 
+def get_mongo_client(max_retries: int = 3, allow_fallback: bool = True) -> Optional[MongoClient]:
+    """
+    Connect to MongoDB with retry logic and health check ping.
+    If allow_fallback is True, gracefully falls back to in-memory store if daemon is offline.
+    """
+    mongo_url = os.getenv("MONGODB_URL", "mongodb://localhost:27017/")
+    
+    for attempt in range(max_retries):
+        try:
+            client = MongoClient(mongo_url, serverSelectionTimeoutMS=2000)
+            client.admin.command('ping')  # Test connection
+            logger.info("MongoDB connected on attempt %d", attempt + 1)
+            print(f"[MongoDB] Connected successfully on attempt {attempt + 1}")
+            return client
+        except (ConnectionFailure, ServerSelectionTimeoutError, Exception) as e:
+            logger.warning("MongoDB attempt %d failed: %s", attempt + 1, e)
+            print(f"[MongoDB] Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(1)  # Wait before retry
+    
+    if not allow_fallback:
+        raise Exception("MongoDB connection failed after all retries!")
+        
+    logger.info("MongoDB daemon offline — operating in resilient fallback mode.")
+    print("[MongoDB] Operating in resilient in-memory fallback mode.")
+    return None
+
+
+# Initialize module-level client and database
+_raw_client = get_mongo_client(max_retries=1, allow_fallback=True)
+if _raw_client:
+    mongo_client = _raw_client
+    db = mongo_client[MONGO_DB_NAME]
+else:
+    mongo_client = None
+    db = InMemoryFallbackDB()
+
+
 class MongoDBManager:
-    client: Any = None
-    db: Any = None
-    is_connected: bool = False
+    client: Any = mongo_client
+    db: Any = db
+    is_connected: bool = mongo_client is not None
 
     @classmethod
     async def connect(cls):
@@ -57,13 +102,13 @@ class MongoDBManager:
             cls.is_connected = True
             logger.info("Connected to real MongoDB instance successfully.")
         except Exception as e:
-            logger.info("MongoDB daemon optional/not found (%s). Utilizing fast in-memory document store.", e)
+            logger.info("MongoDB daemon not found (%s). Utilizing resilient in-memory document store.", e)
             cls.db = InMemoryFallbackDB()
             cls.is_connected = False
 
     @classmethod
     async def disconnect(cls):
-        if cls.client:
+        if cls.client and hasattr(cls.client, "close"):
             try:
                 cls.client.close()
             except Exception:

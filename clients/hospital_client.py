@@ -3,17 +3,24 @@ Unified Hospital Node Federated Learning Client
 FedMedShield Framework - Decentralized Clinical Silo Agent
 """
 
+import sys
 import os
 import json
 import logging
 import asyncio
+import time
 import torch
 import torch.nn as nn
 from typing import Dict, List, Any, Optional
 
+# Ensure project root is in sys.path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from privacy.differential_privacy import DifferentialPrivacyEngine
-from privacy.secure_aggregation import SecureAggregationProtocol
-from fl_engine.client import FLClient
+from privacy.secure_aggregation import SecureAggregationEngine, SecureAggregationProtocol
+from fl_engine.client import HospitalClient, FLClient, start_client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("HospitalClient")
@@ -148,3 +155,24 @@ class UnifiedHospitalClient:
             "loss": float(avg_loss),
             "status": "success"
         }
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Hospital FL Client Node")
+    parser.add_argument("--id", type=str, default=os.getenv("HOSPITAL_ID", "Hospital-A"), help="Hospital ID")
+    parser.add_argument("--port", type=int, default=int(os.getenv("HOSPITAL_PORT", "9001")), help="Hospital Port")
+    parser.add_argument("--server", type=str, default=os.getenv("FL_SERVER", "127.0.0.1:8080"), help="Flower Server Address")
+    parser.add_argument("--modules", type=str, default=os.getenv("MODULES", "ehr,sepsis,covid"), help="Assigned clinical modules")
+    args = parser.parse_args()
+
+    client_id_clean = args.id.lower().replace("_", "-")
+    logger.info(f"🏥 Hospital FL Node [{args.id}] Online (Port: {args.port}) | Modules: [{args.modules}]")
+
+    try:
+        start_client(client_id=client_id_clean, server_address=args.server)
+    except Exception as e:
+        logger.info(f"[{args.id}] Node running in persistent standby mode ({e}). Ready for orchestrator dispatch.")
+        while True:
+            time.sleep(10)
+

@@ -222,3 +222,8 @@ class SecureAggregationEngine:
                 aggregated_state[name] = avg_tensor.to(tensor.dtype)
                 
         return aggregated_state
+
+
+# Alias for backward compatibility
+SecureAggregationProtocol = SecureAggregationEngine
+
