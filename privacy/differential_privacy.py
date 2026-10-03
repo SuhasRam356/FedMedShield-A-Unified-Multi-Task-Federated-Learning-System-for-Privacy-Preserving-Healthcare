@@ -172,31 +172,47 @@ class DifferentialPrivacyEngine:
         self,
         local_model_state: Dict[str, torch.Tensor],
         global_model_state: Dict[str, torch.Tensor],
-        local_steps: int = 1
+        local_steps: int = 1,
+        sample_rate: Optional[float] = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, float]]:
         """
-        Applies Differential Privacy to the model updates.
+        Applies client-level differential privacy to model updates.
+        Gates release to halt before exceeding target_epsilon budget.
         
         Returns:
             Tuple of (privatized_state, privacy_metrics)
         """
-        if self.is_exhausted:
-            logger.warning("Privacy budget exhausted! Returning un-updated global model.")
-            return global_model_state, self.accountant.get_current_budget()
+        eff_sample_rate = sample_rate if sample_rate is not None else self.sample_rate
 
-        # 1. Compute update and current norm
+        # 1. Pre-release budget estimation (halt before releasing over-budget update)
+        projected_eps = self.accountant.total_epsilon + (
+            (eff_sample_rate * math.sqrt(local_steps * 2 * math.log(1.25 / max(1e-9, self.accountant.target_delta))))
+            / max(1e-6, self.noise_multiplier)
+        )
+
+        if self.is_exhausted or (projected_eps > self.target_epsilon and self.accountant.total_epsilon > 0):
+            self.is_exhausted = True
+            logger.warning(f"Privacy budget exceeded prior to release (projected ε={projected_eps:.2f} > {self.target_epsilon}). Withholding update.")
+            halt_metrics = {
+                "current_epsilon": float(self.accountant.total_epsilon),
+                "target_epsilon": float(self.target_epsilon),
+                "budget_exhausted": True
+            }
+            return global_model_state, halt_metrics
+
+        # 2. Compute update and current norm
         current_norm = self.compute_update_norm(local_model_state, global_model_state)
         
-        # 2. Update adaptive clipping threshold
+        # 3. Update adaptive clipping threshold
         current_clip = self.clipper.update_clip_threshold(current_norm)
         
-        # 3. Calculate clipping factor
+        # 4. Calculate clipping factor
         clip_coef = current_clip / (current_norm + 1e-6)
         clip_coef_clamped = min(1.0, clip_coef)
 
         privatized_state = {}
         
-        # 4. Clip and Add Noise
+        # 5. Clip and Add Noise (Client-level update perturbation)
         for name, local_tensor in local_model_state.items():
             if local_tensor.dtype not in [torch.float32, torch.float64]:
                 privatized_state[name] = local_tensor.clone()
@@ -205,14 +221,9 @@ class DifferentialPrivacyEngine:
             global_tensor = global_model_state[name]
             update = local_tensor - global_tensor
             
-            # Clip
             clipped_update = update * clip_coef_clamped
-            
-            # Noise variance scaled by clipping bound
-            # var = (clip_norm * noise_multiplier)^2
             noise_std = self.noise_multiplier * current_clip
             
-            # Add Gaussian noise
             noise = torch.normal(
                 mean=0.0, 
                 std=noise_std, 
@@ -220,28 +231,24 @@ class DifferentialPrivacyEngine:
                 device=clipped_update.device
             )
             noisy_update = clipped_update + noise
-            
-            # Reconstruct
             privatized_state[name] = global_tensor + noisy_update
 
-        # 5. Track Privacy Cost
+        # 6. Track Privacy Cost
         current_eps = self.accountant.accumulate(
             noise_multiplier=self.noise_multiplier,
-            sample_rate=self.sample_rate,
+            sample_rate=eff_sample_rate,
             steps=local_steps
         )
         
         if current_eps >= self.target_epsilon:
             self.is_exhausted = True
-            logger.warning(f"Privacy budget reached! (ε={current_eps:.2f} >= {self.target_epsilon})")
+            logger.warning(f"Privacy budget reached limit (ε={current_eps:.2f} >= {self.target_epsilon})")
 
+        # Exclude raw unnoised clip telemetry (update_norm, clip_threshold) to prevent server statistics leakage
         metrics = {
-            "current_epsilon": current_eps,
-            "target_epsilon": self.target_epsilon,
-            "update_norm_pre_clip": current_norm,
-            "clip_threshold": current_clip,
-            "clip_factor": clip_coef_clamped,
-            "budget_exhausted": self.is_exhausted
+            "current_epsilon": float(current_eps),
+            "target_epsilon": float(self.target_epsilon),
+            "budget_exhausted": bool(self.is_exhausted)
         }
         
         return privatized_state, metrics

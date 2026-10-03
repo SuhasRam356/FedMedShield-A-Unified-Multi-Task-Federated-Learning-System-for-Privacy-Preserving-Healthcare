@@ -32,10 +32,10 @@ export const PrivacyReport: React.FC = () => {
           <div>
             <div className="flex items-center space-x-2 text-amber-400 mb-2">
               <Award className="w-5 h-5" />
-              <h3 className="font-semibold text-textMain text-base">Demonstration Privacy Profile (Simulated DP-SGD)</h3>
+              <h3 className="font-semibold text-textMain text-base">Demonstration Client-Level DP Profile (Weight Update Perturbation)</h3>
             </div>
             <p className="text-xs text-textMuted leading-relaxed">
-              Nominal simulation configuration targeting (ε=1.5, δ=1e-5). Formal patient-level differential privacy in production requires calibrated subsampling, empirical membership-inference auditing, and certified cryptographic key-agreement before regulatory compliance certification.
+              Nominal simulation configuration applying clipping and Gaussian noise to client model weight updates (client-level DP). It is NOT per-example DP-SGD. Formal patient-level differential privacy in production requires calibrated per-example gradient clipping, vetted Rényi accountants (e.g. Opacus), and formal compliance auditing.
             </p>
           </div>
 

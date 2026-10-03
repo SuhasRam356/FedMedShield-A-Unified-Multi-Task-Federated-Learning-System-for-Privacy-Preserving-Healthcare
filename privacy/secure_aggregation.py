@@ -1,13 +1,12 @@
 """
 ═══════════════════════════════════════════════════════════════
-FedMedShield — Advanced Secure Aggregation Module
-A functional simulation of Secure Multi-Party Computation (SMPC).
-Implements the core mechanics of Bonawitz et al. (2017):
-1. Simulated Diffie-Hellman Key Exchange (DHKE)
-2. Pairwise Shared Secrets
-3. Weight Quantization (Float -> Integer for Modular Arithmetic)
-4. Cryptographic Masking via PRG
-5. Secure Server-Side Aggregation (Mask cancellation)
+FedMedShield — Secure Aggregation Module (Educational Simulation)
+Demonstrates the algebraic concept of pairwise additive mask cancellation.
+NOTICE: This is an algorithmic simulation for research demonstration.
+It is NOT an independently audited cryptographic implementation and does
+not include Diffie-Hellman key agreement, Shamir secret sharing for dropouts,
+or zero-knowledge proofs. For production deployments, integrate Flower's
+official SecAgg+ workflow or an established MPC framework.
 ═══════════════════════════════════════════════════════════════
 """
 

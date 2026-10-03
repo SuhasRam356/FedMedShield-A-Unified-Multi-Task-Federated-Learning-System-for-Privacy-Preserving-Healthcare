@@ -28,12 +28,11 @@ logger = logging.getLogger("HospitalClient")
 
 class UnifiedHospitalClient:
     """
-    Hospital Client encapsulating multi-task models (EHR, Imaging, Drug, IDS).
-    Handles:
-      - Local dataset partitioning & preprocessing
-      - On-premise private training with DP-SGD / clipping
-      - Pairwise masking for Bonawitz Secure Aggregation (SecAgg)
-      - Telemetry reporting & gradient transmission
+    [DEPRECATED / QUARANTINED STANDALONE CLIENT]
+    NOTE: This class is a legacy educational prototype retained for backward compatibility.
+    The CANONICAL federated learning client in FedMedShield is `fl_engine.client.HospitalClient`,
+    which runs actual PyTorch forward/backward passes on partitioned hospital DataLoaders
+    and communicates with the Flower server over gRPC/TLS.
     """
 
     def __init__(

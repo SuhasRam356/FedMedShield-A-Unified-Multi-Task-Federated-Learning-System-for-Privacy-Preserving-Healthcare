@@ -9,6 +9,7 @@ applies Differential Privacy, and masks updates for Secure Aggregation.
 
 import os
 import time
+import json
 import torch
 import flwr as fl
 from collections import OrderedDict
@@ -110,7 +111,8 @@ class HospitalClient(fl.client.NumPyClient):
                 self.dataloaders[task_name] = factory.get_hospital_dataloaders(self.client_id)
             elif task_name.startswith("imaging"):
                 factory = ImagingDataLoaderFactory()
-                self.dataloaders[task_name] = factory.get_hospital_dataloaders(self.client_id)
+                img_task = "glaucoma" if "glaucoma" in task_name else ("covid_xray" if "covid" in task_name else "tumor")
+                self.dataloaders[task_name] = factory.get_hospital_dataloaders(self.client_id, task=img_task)
             elif task_name == "drug":
                 factory = DrugDataLoaderFactory()
                 self.dataloaders[task_name] = factory.get_hospital_dataloaders(self.client_id)
@@ -187,20 +189,33 @@ class HospitalClient(fl.client.NumPyClient):
         metrics = {}
         if use_dp:
             logger.info(f"[{self.client_id}] Applying Differential Privacy...")
+            batch_size = getattr(train_loader, "batch_size", 32)
+            total_samples = len(train_loader.dataset) if hasattr(train_loader, "dataset") else 1000
+            eff_sample_rate = batch_size / max(1, total_samples)
+
             final_state, dp_metrics = self.dp_engine.apply_dp(
                 local_model_state=final_state,
                 global_model_state=global_model.state_dict(),
-                local_steps=epochs * len(train_loader)
+                local_steps=epochs * len(train_loader),
+                sample_rate=eff_sample_rate
             )
             metrics.update(dp_metrics)
             
         # 5. Apply Secure Aggregation Masking
         if use_secagg:
             logger.info(f"[{self.client_id}] Applying Secure Aggregation Masking...")
-            # In a real deployment, active_clients would be broadcasted by the server
-            # Here we simulate knowing the active clients from the config
-            active_clients = config.get("active_clients", [self.client_id])
-            peer_keys = config.get("peer_keys", {})
+            active_clients_val = config.get("active_clients", "")
+            peer_keys_val = config.get("peer_keys", "")
+
+            try:
+                active_clients = json.loads(active_clients_val) if isinstance(active_clients_val, str) and active_clients_val else [self.client_id]
+            except Exception:
+                active_clients = [self.client_id]
+
+            try:
+                peer_keys = json.loads(peer_keys_val) if isinstance(peer_keys_val, str) and peer_keys_val else {}
+            except Exception:
+                peer_keys = {}
             
             self.secagg_engine.receive_public_keys(peer_keys)
             final_state = self.secagg_engine.mask_local_update(final_state)

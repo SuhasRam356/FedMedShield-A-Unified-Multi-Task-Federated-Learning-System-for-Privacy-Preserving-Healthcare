@@ -114,6 +114,65 @@ async def create_task(task_input: FLTaskCreate):
     return new_task
 
 
+FL_SYSTEM_STATE = {
+    "currentRound": 0,
+    "totalRounds": 20,
+    "globalAccuracy": 0.720,
+    "globalLoss": 0.650,
+    "activeHospitals": 4,
+    "totalHospitals": 4,
+    "privacyBudget": {
+        "epsilon": 0.5,
+        "delta": 1e-5,
+        "noiseScale": 0.01,
+        "maxBudget": 10.0
+    },
+    "status": "idle"
+}
+
+_TRAINING_TASKS: Dict[int, asyncio.Task] = {}
+
+
+async def _simulate_fl_rounds(task_id: int):
+    task = MOCK_TASKS.get(task_id)
+    if not task:
+        return
+    target_rounds = task.get("target_rounds", 10)
+    FL_SYSTEM_STATE["status"] = "training"
+    FL_SYSTEM_STATE["totalRounds"] = target_rounds
+
+    try:
+        for r in range(1, target_rounds + 1):
+            if task.get("status") != "training":
+                break
+            task["current_round"] = r
+            FL_SYSTEM_STATE["currentRound"] = r
+            FL_SYSTEM_STATE["globalAccuracy"] = round(min(0.965, 0.72 + (r * 0.025)), 3)
+            FL_SYSTEM_STATE["globalLoss"] = round(max(0.12, 0.65 - (r * 0.05)), 3)
+            FL_SYSTEM_STATE["privacyBudget"]["epsilon"] = round(min(10.0, 0.5 + (r * 0.35)), 2)
+
+            try:
+                from backend.api.websockets import manager
+                await manager.broadcast(str(task_id), {
+                    "round": r,
+                    "totalRounds": target_rounds,
+                    "accuracy": FL_SYSTEM_STATE["globalAccuracy"],
+                    "loss": FL_SYSTEM_STATE["globalLoss"],
+                    "epsilon": FL_SYSTEM_STATE["privacyBudget"]["epsilon"],
+                    "status": "training"
+                })
+            except Exception:
+                pass
+
+            await asyncio.sleep(2.0)
+
+        if task.get("status") == "training":
+            task["status"] = "completed"
+            FL_SYSTEM_STATE["status"] = "completed"
+    except asyncio.CancelledError:
+        pass
+
+
 @router.post("/tasks/{task_id}/start")
 async def start_task(task_id: int):
     task = MOCK_TASKS.get(task_id)
@@ -121,6 +180,11 @@ async def start_task(task_id: int):
         raise HTTPException(status_code=404, detail="Task not found")
     task["status"] = "training"
     task["current_round"] = 1
+    
+    if task_id in _TRAINING_TASKS and not _TRAINING_TASKS[task_id].done():
+        _TRAINING_TASKS[task_id].cancel()
+    _TRAINING_TASKS[task_id] = asyncio.create_task(_simulate_fl_rounds(task_id))
+
     return {"message": f"Task {task_id} orchestration started", "task": task}
 
 
@@ -130,6 +194,9 @@ async def stop_task(task_id: int):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     task["status"] = "idle"
+    if task_id in _TRAINING_TASKS and not _TRAINING_TASKS[task_id].done():
+        _TRAINING_TASKS[task_id].cancel()
+    FL_SYSTEM_STATE["status"] = "idle"
     return {"message": f"Task {task_id} orchestration stopped", "task": task}
 
 
@@ -141,18 +208,4 @@ async def list_nodes():
 @router.get("/status")
 async def get_fl_status():
     """Returns the current real-time FL network and aggregation status."""
-    return {
-        "currentRound": 3,
-        "totalRounds": 20,
-        "globalAccuracy": 0.934,
-        "globalLoss": 0.178,
-        "activeHospitals": 4,
-        "totalHospitals": 4,
-        "privacyBudget": {
-            "epsilon": 2.5,
-            "delta": 1e-5,
-            "noiseScale": 0.01,
-            "maxBudget": 10.0
-        },
-        "status": "running"
-    }
+    return FL_SYSTEM_STATE

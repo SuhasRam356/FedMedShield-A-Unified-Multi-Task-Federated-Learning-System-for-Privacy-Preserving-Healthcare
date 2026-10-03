@@ -15,13 +15,13 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
   const percentage = Math.min(100, Math.max(0, (currentEpsilon / maxEpsilon) * 100));
 
   let color = 'from-green-500 to-emerald-400';
-  let statusText = 'Strict Privacy Guarantee';
+  let statusText = 'Budget Within Nominal Target';
   if (percentage > 50 && percentage <= 80) {
     color = 'from-yellow-500 to-amber-400';
-    statusText = 'Moderate Privacy Depletion';
+    statusText = 'Moderate Budget Depletion';
   } else if (percentage > 80) {
     color = 'from-red-500 to-rose-400';
-    statusText = 'Privacy Threshold Warning';
+    statusText = 'Budget Ceiling Threshold';
   }
 
   return (
@@ -29,7 +29,7 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-textMuted flex items-center">
           <Shield className="w-4 h-4 mr-2 text-accent" />
-          RDP Privacy Budget Consumption
+          Simulated Privacy Budget Tracking
         </span>
         <span className="text-xs font-mono text-textMuted">δ = {delta.toExponential(1)}</span>
       </div>
@@ -53,7 +53,7 @@ export const PrivacyBudgetGauge: React.FC<PrivacyBudgetGaugeProps> = ({
 
       <div className="text-xs text-textMuted flex items-center justify-between">
         <span>Status: <strong className="text-textMain">{statusText}</strong></span>
-        <span className="font-mono">Renyi DP Engine</span>
+        <span className="font-mono">Client-Level Perturbation</span>
       </div>
     </div>
   );

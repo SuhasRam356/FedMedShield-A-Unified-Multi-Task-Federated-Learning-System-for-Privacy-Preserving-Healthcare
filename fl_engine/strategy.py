@@ -1,6 +1,12 @@
 """
-Federated Learning Strategies (FedAvg, FedProx, FedNova)
+Federated Learning Strategies (FedAvg, FedProx, FedNova Reference Implementations)
 FedMedShield Framework - Multi-Task Federated Healthcare
+
+NOTE ON SERVER INTEGRATION:
+The active Flower server (`fl_engine/server.py`) executes `SecureFedAvgStrategy`,
+which subclasses Flower's native `FedAvg` to perform sample-weighted parameter aggregation
+and optional mask unmasking. The strategy classes below (`FedProx`, `FedNova`) are
+standalone PyTorch state-dict aggregation reference helpers for offline experimental simulation.
 """
 
 import copy

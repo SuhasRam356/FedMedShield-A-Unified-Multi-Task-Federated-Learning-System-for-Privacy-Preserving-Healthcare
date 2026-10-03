@@ -106,25 +106,25 @@ const Privacy: React.FC = () => {
             <div className="flex justify-between items-center p-3 bg-background rounded border border-surfaceHighlight">
               <div>
                 <h4 className="text-sm font-medium">Protocol</h4>
-                <p className="text-xs text-textMuted">Bonawitz et al. (Masking)</p>
+                <p className="text-xs text-textMuted">Additive Mask Cancellation (Simulation)</p>
               </div>
-              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded">Active</span>
+              <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-bold rounded">Simulation</span>
             </div>
 
             <div className="flex justify-between items-center p-3 bg-background rounded border border-surfaceHighlight">
               <div>
-                <h4 className="text-sm font-medium">Key Exchange</h4>
-                <p className="text-xs text-textMuted">Elliptic Curve Diffie-Hellman (ECDH)</p>
+                <h4 className="text-sm font-medium">Key Agreement</h4>
+                <p className="text-xs text-textMuted">Simulated Shared Seed (Non-Cryptographic)</p>
               </div>
-              <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-bold rounded">Active</span>
+              <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs font-bold rounded">Simulation</span>
             </div>
 
             <div className="flex justify-between items-center p-3 bg-background rounded border border-surfaceHighlight">
               <div>
                 <h4 className="text-sm font-medium">Dropout Tolerance</h4>
-                <p className="text-xs text-textMuted">Shamir's Secret Sharing Threshold</p>
+                <p className="text-xs text-textMuted">Synchronous Active Set Required (No Dynamic Recovery)</p>
               </div>
-              <span className="text-sm font-bold text-textMain">3 / 4 Nodes</span>
+              <span className="text-sm font-bold text-textMain">All Active</span>
             </div>
           </div>
         </div>

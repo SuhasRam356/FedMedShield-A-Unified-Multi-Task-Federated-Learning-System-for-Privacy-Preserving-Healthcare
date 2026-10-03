@@ -9,6 +9,7 @@ metric aggregation across hospitals.
 
 import os
 import time
+import json
 import torch
 import flwr as fl
 from flwr.server.client_proxy import ClientProxy
@@ -75,15 +76,15 @@ class SecureFedAvgStrategy(fl.server.strategy.FedAvg):
             num_clients=sample_size, min_num_clients=min_num_clients
         )
 
-        # Create custom config for this round
+        # Create custom config for this round ensuring all values conform to Flower's Scalar contract
         fit_config = {
             "task": self.task_name,
             "epochs": 1,
             "fedprox_mu": 0.1,  # Non-IID handling
             "use_dp": self.use_dp,
             "use_secagg": self.use_secagg,
-            "active_clients": self.client_ids,
-            "peer_keys": self.public_keys,
+            "active_clients": json.dumps(self.client_ids) if self.use_secagg else "",
+            "peer_keys": json.dumps(self.public_keys) if self.use_secagg else "",
             "server_round": server_round,
         }
 
@@ -332,9 +333,12 @@ def start_server(
         if task_name == "ehr":
             from modules.module1_ehr.ehr_model import EHRMultiTaskModel
             initial_model = EHRMultiTaskModel()
-        elif task_name.startswith("imaging"):
+        elif task_name == "imaging_glaucoma":
+            from modules.module2_imaging.imaging_model import GlaucomaDetector
+            initial_model = GlaucomaDetector()
+        elif task_name in ("imaging", "imaging_tumor"):
             from modules.module2_imaging.imaging_model import TumorDetector
-            initial_model = TumorDetector()  # Standardizes on 3-class for init
+            initial_model = TumorDetector()  # 3-class for tumor detection
         elif task_name == "drug":
             from modules.module3_drug.drug_model import DrugProteinBindingModel
             initial_model = DrugProteinBindingModel()
