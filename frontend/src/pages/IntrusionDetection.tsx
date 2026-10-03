@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DemoNoticeBanner from '../components/common/DemoNoticeBanner';
 import { ShieldCheck, ShieldAlert, Terminal, Activity, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import idsService, { IntrusionAlertResponse } from '../services/ids.service';
 
@@ -8,21 +9,21 @@ export const IntrusionDetection: React.FC = () => {
       alert_id: 'ALT-C902A1',
       timestamp: '2026-10-02 18:42:10 UTC',
       attack_detected: true,
-      attack_type: 'SYN Flood DDoS Attempt',
+      attack_type: 'SYN Flood DDoS Attempt (Simulated Pattern)',
       severity: 'Critical',
       confidence: 0.965,
       affected_node: 'Hospital Node Gateway (10.0.1.10)',
-      mitigation_action: 'Automated drop rule engaged on ingress firewall. Rate-limit IP: 192.168.1.105'
+      mitigation_action: 'Simulation Demo Flag: Threshold matched (No active firewall rule enacted in demo mode)'
     },
     {
       alert_id: 'ALT-B41092',
       timestamp: '2026-10-02 17:15:33 UTC',
       attack_detected: false,
-      attack_type: 'Benign Protocol Handshake',
+      attack_type: 'Benign Protocol Handshake (Simulated Pattern)',
       severity: 'Low',
       confidence: 0.992,
       affected_node: 'Central Aggregation Server (10.0.0.1)',
-      mitigation_action: 'Traffic accepted into local demilitarized clinical subnetwork.'
+      mitigation_action: 'Simulation Demo Flag: Standard traffic profile (Inspection demonstration passed)'
     }
   ]);
   const [isScanning, setIsScanning] = useState(false);
@@ -48,11 +49,11 @@ export const IntrusionDetection: React.FC = () => {
             alert_id: `ALT-${Math.random().toString(16).substring(2, 8).toUpperCase()}`,
             timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC',
             attack_detected: true,
-            attack_type: 'Abnormal High-Frequency Weight Exfiltration',
+            attack_type: 'Abnormal High-Frequency Weight Exfiltration (Simulated Pattern)',
             severity: 'High',
             confidence: 0.941,
             affected_node: 'Chicago Medical Node Gateway (10.0.2.15)',
-            mitigation_action: 'Quarantined client channel; mutual TLS certificate verification triggered.'
+            mitigation_action: 'Simulation Demo Flag: High volume transfer anomaly logged (No network action taken in demo mode)'
           },
           ...prev
         ]);
@@ -82,27 +83,33 @@ export const IntrusionDetection: React.FC = () => {
         </button>
       </div>
 
+      <DemoNoticeBanner
+        title="P0 Simulation Notice — Cybersecurity Testing Prototype"
+        message="Network inspection events and telemetry entries below are simulated demonstration artifacts. No active network mitigations, firewall drop rules, or mutual TLS certificate revocations are enacted by this prototype. Do not rely on this interface for production infrastructure protection."
+        variant="warning"
+      />
+
       {/* Cyber Defense Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
         <div className="bg-surface border border-surfaceHighlight rounded-xl p-5 shadow-glow">
-          <p className="text-xs text-textMuted font-medium">Inspected Packets</p>
+          <p className="text-xs text-textMuted font-medium">Inspected Packets (Simulated)</p>
           <p className="text-2xl font-bold font-mono text-white mt-2">1,489,204</p>
-          <span className="text-[11px] text-green-400 mt-2 block">100% Zero-Loss Ingress</span>
+          <span className="text-[11px] text-amber-400 mt-2 block">Demonstration Telemetry</span>
         </div>
         <div className="bg-surface border border-surfaceHighlight rounded-xl p-5 shadow-glow">
-          <p className="text-xs text-textMuted font-medium">Threats Mitigated</p>
+          <p className="text-xs text-textMuted font-medium">Threats Flagged (Simulated)</p>
           <p className="text-2xl font-bold font-mono text-amber-400 mt-2">2 Active</p>
-          <span className="text-[11px] text-textMuted mt-2 block">DDoS & Exfiltration Dropped</span>
+          <span className="text-[11px] text-textMuted mt-2 block">Synthetic Anomaly Patterns</span>
         </div>
         <div className="bg-surface border border-surfaceHighlight rounded-xl p-5 shadow-glow">
-          <p className="text-xs text-textMuted font-medium">Detection Accuracy</p>
+          <p className="text-xs text-textMuted font-medium">Model Metric (Benchmark)</p>
           <p className="text-2xl font-bold font-mono text-green-400 mt-2">99.4%</p>
-          <span className="text-[11px] text-textMuted mt-2 block">NSL-KDD / CIC-IDS Benchmark</span>
+          <span className="text-[11px] text-textMuted mt-2 block">NSL-KDD Synthetic Split</span>
         </div>
         <div className="bg-surface border border-surfaceHighlight rounded-xl p-5 shadow-glow">
           <p className="text-xs text-textMuted font-medium">Defense Model Status</p>
-          <p className="text-2xl font-bold font-mono text-accent mt-2">Federated</p>
-          <span className="text-[11px] text-textMuted mt-2 block">Collaborative Cross-Hospital</span>
+          <p className="text-2xl font-bold font-mono text-accent mt-2">Simulated</p>
+          <span className="text-[11px] text-textMuted mt-2 block">Collaborative Cross-Hospital Prototype</span>
         </div>
       </div>
 
@@ -110,7 +117,7 @@ export const IntrusionDetection: React.FC = () => {
       <div className="bg-surface border border-surfaceHighlight rounded-xl p-6 shadow-glow">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center">
           <Terminal className="w-5 h-5 mr-2 text-accent" />
-          Real-Time Intrusion & Anomaly Log
+          Simulated Intrusion & Anomaly Log
         </h2>
 
         <div className="overflow-x-auto">
@@ -122,12 +129,13 @@ export const IntrusionDetection: React.FC = () => {
                 <th className="pb-3 pr-4">Attack Type</th>
                 <th className="pb-3 pr-4">Severity</th>
                 <th className="pb-3 pr-4">Confidence</th>
-                <th className="pb-3">Mitigation Action Taken</th>
+                <th className="pb-3">Simulated Demonstration Flag</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surfaceHighlight text-xs">
               {alerts.map((alert) => (
                 <tr key={alert.alert_id} className="hover:bg-background/40 transition-colors">
+
                   <td className="py-3 pr-4 font-mono font-bold text-white">{alert.alert_id}</td>
                   <td className="py-3 pr-4 font-mono text-textMuted">{alert.timestamp}</td>
                   <td className="py-3 pr-4 font-medium text-textMain">{alert.attack_type}</td>

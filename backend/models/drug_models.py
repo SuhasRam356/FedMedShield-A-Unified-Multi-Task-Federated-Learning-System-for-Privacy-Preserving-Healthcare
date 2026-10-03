@@ -22,3 +22,6 @@ class AffinityPredictionResponse(BaseModel):
     druggability_probability: float
     safety_admet_flag: str  # Low Toxicity, Moderate Risk, Flagged
     recommendation: str
+    disclaimer: str = "RESEARCH DEMONSTRATION ONLY — Not for pharmacological or clinical decision-making. Values are heuristic simulation estimates and not validated molecular chemistry."
+    is_synthetic_simulation: bool = True
+

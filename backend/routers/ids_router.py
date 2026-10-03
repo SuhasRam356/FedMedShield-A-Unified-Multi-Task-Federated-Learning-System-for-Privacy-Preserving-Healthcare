@@ -6,37 +6,42 @@ FedMedShield Framework - Healthcare Network Cyber Defense API
 import time
 import uuid
 from datetime import datetime
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from backend.models.ids_models import NetworkFlowPacket, IntrusionDetectionAlert
+from backend.middleware.auth_middleware import get_current_user
 
 router = APIRouter(prefix="/ids", tags=["Intrusion Detection"])
 
 
 @router.post("/inspect", response_model=IntrusionDetectionAlert)
-async def inspect_packet_flow(packet: NetworkFlowPacket):
+async def inspect_packet_flow(
+    packet: NetworkFlowPacket,
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Evaluates hospital telemetry packets through the federated IDS neural model.
-    Detects SYN flood DDoS, port scans, and HIPAA data exfiltration attempts.
+    Evaluates simulated telemetry packets through demonstration inspection heuristics.
+    DISCLAIMER: This endpoint runs a synthetic prototyping check.
+    No live firewall modification, packet filtering, or mutual TLS certificate revocation occurs.
     """
     is_attack = False
-    attack_type = "Benign Traffic"
+    attack_type = "Benign Simulated Traffic"
     severity = "Low"
     confidence = 0.99
-    mitigation = "Traffic accepted into local demilitarized clinical subnetwork."
+    mitigation = "Simulation Demo Flag: Traffic matches standard simulated profile (Inspection demonstration passed)."
 
-    # Heuristic checks on top of neural score
+    # Demonstration heuristic checks
     if packet.flag == "SYN_SENT" and packet.bytes_out > 5000:
         is_attack = True
-        attack_type = "SYN Flood DDoS Attempt"
+        attack_type = "SYN Flood DDoS Attempt (Simulated Pattern)"
         severity = "Critical"
         confidence = 0.965
-        mitigation = "Automated drop rule engaged on ingress firewall. Rate-limit IP: " + packet.source_ip
+        mitigation = "Simulation Demo Flag: SYN flood threshold matched in synthetic telemetry (No firewall modification enacted in demo mode)."
     elif packet.bytes_in > 100000 and packet.duration_sec < 0.1:
         is_attack = True
-        attack_type = "Mass Patient EHR Exfiltration"
+        attack_type = "Mass Patient EHR Exfiltration (Simulated Pattern)"
         severity = "High"
         confidence = 0.92
-        mitigation = "Session terminated immediately. Certificate revoked on mutual TLS gateway."
+        mitigation = "Simulation Demo Flag: Rapid volume transfer threshold flagged in synthetic scenario (No certificate revocation enacted in demo mode)."
 
     return IntrusionDetectionAlert(
         alert_id=f"ALT-{uuid.uuid4().hex[:8].upper()}",
@@ -46,5 +51,8 @@ async def inspect_packet_flow(packet: NetworkFlowPacket):
         severity=severity,
         confidence=confidence,
         affected_node="Hospital Node Gateway (" + packet.dest_ip + ")",
-        mitigation_action=mitigation
+        mitigation_action=mitigation,
+        disclaimer="RESEARCH DEMONSTRATION ONLY — Simulated detection rule. No active network mitigation, firewall rule, or certificate revocation was executed.",
+        is_synthetic_simulation=True
     )
+

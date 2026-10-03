@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import PatientDataForm from '../components/forms/PatientDataForm';
 import PredictionResultCard from '../components/cards/PredictionResultCard';
+import DemoNoticeBanner from '../components/common/DemoNoticeBanner';
 import { usePrediction } from '../hooks/usePrediction';
 import { Activity, ShieldCheck, FileCheck } from 'lucide-react';
 
@@ -21,6 +22,12 @@ export const DiseasePrediction: React.FC = () => {
           Multi-task clinical prognostic inference for Sepsis 6-hour onset and COVID-19 ICU mortality risk.
         </p>
       </div>
+
+      <DemoNoticeBanner
+        title="P0 Safety & Data Flow Notice — Synthetic Clinical Simulation"
+        message="Patient vitals entered below are transmitted to the central demonstration API (/api/prediction/ehr) and scored using a demonstration heuristic surrogate. This route does not run validated clinical models and is not on-premise local inference. Do not input real patient data or make clinical decisions based on these values."
+        variant="warning"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Input Form */}
@@ -49,15 +56,16 @@ export const DiseasePrediction: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-textMain">Awaiting Patient EHR Vitals</h3>
                 <p className="text-sm text-textMuted max-w-sm mt-1">
-                  Submit the patient form on the left to execute the federated multi-task clinical model.
+                  Submit the patient form on the left to evaluate simulated multi-task prognosis.
                 </p>
               </div>
-              <div className="flex items-center space-x-2 text-xs text-green-400 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+              <div className="flex items-center space-x-2 text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Protected by Differential Privacy Noise</span>
+                <span>Simulated Research Pipeline (Synthetic Parameters Only)</span>
               </div>
             </div>
           )}
+
 
           {/* Model Information Box */}
           <div className="bg-surface border border-surfaceHighlight rounded-xl p-5 shadow-glow space-y-3">

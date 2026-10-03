@@ -67,10 +67,10 @@ export const PredictionResultCard: React.FC<PredictionResultCardProps> = ({
       </div>
 
       {/* Recommended Clinical Protocol */}
-      <div className="p-4 bg-background rounded-xl border border-surfaceHighlight">
+      <div className="p-4 bg-background rounded-xl border border-surfaceHighlight space-y-2">
         <h4 className="text-xs font-semibold text-textMuted uppercase tracking-wider mb-2 flex items-center">
           <Activity className="w-3.5 h-3.5 mr-1.5 text-accent" />
-          Recommended Clinical Interventions (FL Guidance)
+          Educational Simulation Observations (Not Clinical Directives)
         </h4>
         <ul className="space-y-1.5 text-xs text-textMain">
           {interventions.map((action, idx) => (
@@ -80,12 +80,16 @@ export const PredictionResultCard: React.FC<PredictionResultCardProps> = ({
             </li>
           ))}
         </ul>
+        <div className="mt-2 p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300">
+          ⚠️ <strong>Research Notice:</strong> Output is a synthetic heuristic score for system prototyping. Do not use for clinical diagnostic or treatment decisions.
+        </div>
       </div>
 
       <div className="text-[11px] text-textMuted flex items-center justify-between pt-2">
-        <span>Model Inference Confidence: <strong>{(confidence * 100).toFixed(1)}%</strong></span>
-        <span>Differential Privacy Protected</span>
+        <span>Demonstration Confidence Metric: <strong>{(confidence * 100).toFixed(1)}%</strong></span>
+        <span className="text-amber-400/90">Simulated Heuristic Surrogate</span>
       </div>
+
     </div>
   );
 };

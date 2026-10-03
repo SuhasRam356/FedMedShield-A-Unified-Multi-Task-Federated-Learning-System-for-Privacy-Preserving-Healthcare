@@ -27,7 +27,15 @@ function App() {
             {/* Main Application Area */}
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
               <Navbar />
+              <div className="bg-amber-950/60 border-b border-amber-500/30 px-6 py-2 text-[11px] text-amber-200 flex items-center justify-between shrink-0">
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold uppercase tracking-wider text-amber-300">⚠️ Research Simulation:</span>
+                  <span>Demonstration prototype only. All clinical predictions, drug scores, network alerts, and privacy telemetry are simulated heuristic values. Not for diagnostic, medical, or clinical decision-making.</span>
+                </div>
+                <span className="text-[10px] font-mono text-amber-300/80 ml-4 hidden lg:inline shrink-0">DEMO EVALUATION MODE</span>
+              </div>
               <main className="flex-1 overflow-y-auto p-6 scroll-smooth">
+
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={<Dashboard />} />

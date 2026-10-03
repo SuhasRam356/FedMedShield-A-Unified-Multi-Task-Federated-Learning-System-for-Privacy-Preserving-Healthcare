@@ -39,10 +39,11 @@ export const PatientDataForm: React.FC<PatientDataFormProps> = ({ onSubmit, isLo
       <div className="flex items-center space-x-3 border-b border-surfaceHighlight pb-4">
         <Activity className="w-5 h-5 text-accent" />
         <div>
-          <h3 className="font-semibold text-textMain text-base">Clinical EHR Vitals Input</h3>
-          <p className="text-xs text-textMuted">Enter patient vitals and laboratory markers for multi-task prediction</p>
+          <h3 className="font-semibold text-textMain text-base">Clinical EHR Vitals Input (Synthetic Simulation)</h3>
+          <p className="text-xs text-textMuted">Enter test vitals and laboratory markers for demonstration multi-task scoring</p>
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>

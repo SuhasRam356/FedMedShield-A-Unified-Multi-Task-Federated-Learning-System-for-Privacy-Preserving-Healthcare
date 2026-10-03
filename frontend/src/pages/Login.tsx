@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, Lock, User, KeyRound, ArrowRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('dr_smith');
@@ -16,15 +17,21 @@ export const Login: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Direct demo login
-      await login('demo_jwt_token_fedmedshield_2026');
-      navigate('/dashboard');
-    } catch {
-      setError('Invalid clinical credentials.');
+      const res = await api.post('/auth/login', { username, password });
+      if (res.data?.access_token) {
+        await login(res.data.access_token);
+        navigate('/dashboard');
+      } else {
+        setError('Authentication server did not return an access token.');
+      }
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail;
+      setError(detail || 'Invalid username or password.');
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-background text-textMain flex items-center justify-center p-6 relative overflow-hidden">
@@ -89,12 +96,24 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t border-surfaceHighlight text-center text-xs text-textMuted">
-          <span>Protected by Elliptic Curve Diffie-Hellman & RDP Guard</span>
+        <div className="mt-6 pt-6 border-t border-surfaceHighlight text-center space-y-3">
+          <div className="p-2.5 rounded-lg bg-surfaceHighlight/40 border border-surfaceHighlight/60 text-[11px] text-textMuted text-left space-y-1">
+            <span className="font-semibold text-textMain block">Demonstration Credentials:</span>
+            <div className="flex justify-between font-mono text-[10px]">
+              <span>User: <strong className="text-white">dr_smith</strong></span>
+              <span>Pass: <strong className="text-white">password123</strong></span>
+            </div>
+            <div className="flex justify-between font-mono text-[10px]">
+              <span>Admin: <strong className="text-white">admin</strong></span>
+              <span>Pass: <strong className="text-white">admin123</strong></span>
+            </div>
+          </div>
+          <span className="text-[11px] text-textMuted block">FedMedShield Healthcare Research & Simulation System</span>
         </div>
       </div>
     </div>
   );
 };
+
 
 export default Login;

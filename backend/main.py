@@ -116,17 +116,19 @@ async def root():
         "status": "online",
         "service": "FedMedShield Core API",
         "version": "2.0.0",
+        "disclaimer": "RESEARCH & DEMONSTRATION PROTOTYPE ONLY — Not validated for clinical diagnostic use, patient care, medical decision-making, or production security deployment.",
         "modules": [
-            "Module 1: Multi-Task Clinical EHR (Sepsis & COVID-19)",
-            "Module 2: ResNet50 Medical Imaging (Tumor & Glaucoma)",
-            "Module 3: Federated Drug Discovery & Bioactivity Screening",
-            "Module 4: Cybersecurity Intrusion Detection System (IDS)"
+            "Module 1: Multi-Task Clinical EHR (Sepsis & COVID-19 Demonstration Heuristic)",
+            "Module 2: ResNet50 Medical Imaging (Tumor & Glaucoma Demonstration Heuristic)",
+            "Module 3: Federated Drug Discovery & Bioactivity Screening (Heuristic Prototype)",
+            "Module 4: Cybersecurity Intrusion Detection System (Demonstration Rules)"
         ],
         "privacy_mechanisms": [
-            "Renyi Differential Privacy (RDP)",
-            "Bonawitz Pairwise Masking Secure Aggregation (SecAgg)"
+            "Differential Privacy (Prototype Gaussian Clipping/Noise Simulation)",
+            "Secure Aggregation (Pairwise Masking Demonstration Prototype)"
         ]
     }
+
 
 
 @app.get("/health")

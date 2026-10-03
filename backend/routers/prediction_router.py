@@ -4,18 +4,22 @@ FedMedShield Framework - Privacy-Preserved Multi-Task Inference
 """
 
 import math
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from backend.models.prediction_models import PatientDataInput, PredictionResult
+from backend.middleware.auth_middleware import get_current_user
 
 router = APIRouter(prefix="/prediction", tags=["Clinical Prediction"])
 
 
 @router.post("/ehr", response_model=PredictionResult)
-async def predict_ehr_risk(patient: PatientDataInput):
+async def predict_ehr_risk(
+    patient: PatientDataInput,
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Evaluates multi-task risk using federated trained weights:
-    Task 1: Sepsis 6-hour onset probability (SOFA / qSOFA composite)
-    Task 2: COVID-19 progression and ICU requirement
+    Evaluates multi-task risk heuristic in simulated demonstration mode.
+    DISCLAIMER: This endpoint runs a synthetic educational surrogate for prototyping.
+    It does NOT run validated diagnostic model inference and must not be used for patient care.
     """
     # Calculate physiological deviation score
     temp_dev = max(0.0, patient.temperature - 37.0)
@@ -25,7 +29,7 @@ async def predict_ehr_risk(patient: PatientDataInput):
     crp_factor = min(1.0, patient.crp / 100.0)
     spo2_penalty = max(0.0, (95.0 - patient.spo2) / 15.0)
 
-    # Sigmoid sepsis risk calculation
+    # Sigmoid sepsis risk calculation (heuristic surrogate)
     raw_sepsis_score = 0.25 * hr_factor + 0.35 * bp_factor + 0.2 * wbc_factor + 0.2 * temp_dev + 0.25 * crp_factor
     sepsis_risk = 1.0 / (1.0 + math.exp(-2.5 * (raw_sepsis_score - 0.4)))
     sepsis_risk = round(min(0.98, max(0.02, sepsis_risk)), 4)
@@ -39,7 +43,7 @@ async def predict_ehr_risk(patient: PatientDataInput):
     else:
         sepsis_cat = "Critical"
 
-    # COVID outcome probability
+    # COVID outcome probability (heuristic surrogate)
     raw_covid_score = 0.5 * spo2_penalty + 0.2 * temp_dev + (0.15 if "Diabetes" in patient.comorbidities else 0.0)
     covid_prob = 1.0 / (1.0 + math.exp(-3.0 * (raw_covid_score - 0.3)))
     covid_prob = round(min(0.99, max(0.01, covid_prob)), 4)
@@ -51,16 +55,15 @@ async def predict_ehr_risk(patient: PatientDataInput):
     else:
         covid_sev = "Severe"
 
+    # Simulation-only educational flags (neutral observations; no prescriptive medical orders)
     interventions = []
     if sepsis_risk > 0.60:
-        interventions.append("Initiate 1-hour Sepsis Bundle: IV Crystalloid bolus (30 mL/kg)")
-        interventions.append("Obtain blood cultures prior to broad-spectrum antimicrobial administration")
-        interventions.append("Monitor serial serum lactate levels every 2 hours")
+        interventions.append("Simulation Flag: Elevated systemic inflammatory parameters noted in synthetic record.")
+        interventions.append("Demonstration Note: Institutional sepsis protocol evaluation indicated in clinical practice.")
     if covid_prob > 0.60 or patient.spo2 < 93.0:
-        interventions.append("High-flow supplemental oxygen therapy with continuous pulse oximetry")
-        interventions.append("Consider Dexamethasone 6mg daily + Remdesivir protocol")
+        interventions.append("Simulation Flag: Respiratory biomarker deviation flagged in synthetic scenario.")
     if not interventions:
-        interventions.append("Routine telemetry observation and vital check every 4 hours")
+        interventions.append("Simulation Note: Vital parameters within standard simulated baseline range.")
 
     return {
         "patient_id": patient.patient_id or "PT-88219",
@@ -70,5 +73,8 @@ async def predict_ehr_risk(patient: PatientDataInput):
         "covid_severity": covid_sev,
         "confidence": 0.942,
         "recommended_interventions": interventions,
-        "model_version": "FedMedShield-EHR-Global-v2.1"
+        "model_version": "FedMedShield-EHR-Demo-v2.1",
+        "disclaimer": "RESEARCH DEMONSTRATION ONLY — Not for clinical or diagnostic decision-making. Outputs are synthetic heuristic estimates and do not constitute medical advice or validated inference.",
+        "is_synthetic_simulation": True
     }
+

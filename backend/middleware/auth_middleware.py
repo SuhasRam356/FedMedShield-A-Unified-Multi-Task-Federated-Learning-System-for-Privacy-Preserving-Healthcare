@@ -13,13 +13,12 @@ security = HTTPBearer(auto_error=False)
 
 async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)):
     """FastAPI dependency to extract current user and verify bearer token."""
-    if not credentials:
-        # Default mock user for zero-friction demo if unauthenticated
-        return {
-            "username": "dr_smith",
-            "role": "researcher",
-            "institution": "General Hospital, NY"
-        }
+    if not credentials or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials were not provided. Bearer token required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     token = credentials.credentials
     payload = decode_access_token(token)
@@ -30,6 +29,7 @@ async def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] =
             headers={"WWW-Authenticate": "Bearer"},
         )
     return payload
+
 
 
 def require_roles(allowed_roles: List[str]):

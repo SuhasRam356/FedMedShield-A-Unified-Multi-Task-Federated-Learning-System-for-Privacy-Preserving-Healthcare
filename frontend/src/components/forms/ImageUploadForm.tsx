@@ -28,10 +28,11 @@ export const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onAnalyze, isL
       <div className="flex items-center space-x-3 border-b border-surfaceHighlight pb-4">
         <Eye className="w-5 h-5 text-accent" />
         <div>
-          <h3 className="font-semibold text-textMain text-base">Radiological Scan Diagnostic Submission</h3>
-          <p className="text-xs text-textMuted">Submit DICOM, MRI, or Fundus images for federated classification</p>
+          <h3 className="font-semibold text-textMain text-base">Radiological Scan Submission (Demonstration Pass)</h3>
+          <p className="text-xs text-textMuted">Select scan modality and parameters for demonstration analysis pass</p>
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>

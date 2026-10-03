@@ -3,39 +3,44 @@ Federated Drug Discovery & Bioactivity Screening Router
 FedMedShield Framework - Deep Affinity & ADMET Predictor
 """
 
-import random
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from backend.models.drug_models import CompoundInput, AffinityPredictionResponse
+from backend.middleware.auth_middleware import get_current_user
 
 router = APIRouter(prefix="/drug", tags=["Drug Discovery"])
 
 
 @router.post("/screen", response_model=AffinityPredictionResponse)
-async def screen_compound(compound: CompoundInput):
+async def screen_compound(
+    compound: CompoundInput,
+    current_user: dict = Depends(get_current_user)
+):
     """
-    Screens small molecule SMILES against federated target protein representations.
-    Computes binding affinity (Kd, delta G), bioactivity ranking, and ADMET toxicity filter.
+    Demonstration screening of small molecule SMILES against simulated target representations.
+    DISCLAIMER: This endpoint runs a heuristic simulation formula for prototyping.
+    It does NOT run validated biochemical docking, molecular dynamics, or laboratory assays.
+    Must not be used for pharmacological or therapeutic decision-making.
     """
-    # Deterministic yet diverse score derived from SMILES length and composition
+    # Deterministic heuristic score derived for UI prototyping
     seed_val = sum(ord(c) for c in compound.smiles_string) % 100
     kd_val = round(max(0.5, 120.0 * (100 - seed_val) / 100.0), 2)
     affinity_kcal = round(-5.0 - (seed_val / 20.0), 2)
 
     if affinity_kcal < -8.0:
-        bio_class = "Highly Active (Sub-micromolar)"
+        bio_class = "Demonstration: High Simulated Affinity"
         druggability = 0.92
-        admet = "Low Toxicity Risk (Lipinski Rule of 5 Compliant)"
-        rec = "Strong candidate for lead optimization and in-vitro binding assays."
+        admet = "Simulation Estimate: Low Risk Indicator (Unverified)"
+        rec = "Simulation prototype estimate: candidate exhibits simulated binding in demonstration pass. Validated wet-lab assay required."
     elif affinity_kcal < -6.5:
-        bio_class = "Moderately Active"
+        bio_class = "Demonstration: Moderate Simulated Affinity"
         druggability = 0.74
-        admet = "Moderate Risk (Single H-bond donor violation)"
-        rec = "Secondary candidate; synthesize derivative analogs to improve polar surface area."
+        admet = "Simulation Estimate: Moderate Risk Indicator (Unverified)"
+        rec = "Simulation prototype estimate: moderate affinity in demonstration pass. Empirical validation required."
     else:
-        bio_class = "Weak / Inactive"
+        bio_class = "Demonstration: Low Simulated Affinity"
         druggability = 0.31
-        admet = "Flagged (High Clearance / CYP3A4 inhibition)"
-        rec = "Deprioritize; unfavorable steric hindrance at the target catalytic site."
+        admet = "Simulation Estimate: Elevated Clearance Indicator (Unverified)"
+        rec = "Simulation prototype estimate: low affinity in demonstration pass. Defer until wet-lab screening."
 
     return AffinityPredictionResponse(
         compound_id=compound.compound_id,
@@ -45,5 +50,8 @@ async def screen_compound(compound: CompoundInput):
         bioactivity_class=bio_class,
         druggability_probability=druggability,
         safety_admet_flag=admet,
-        recommendation=rec
+        recommendation=rec,
+        disclaimer="RESEARCH DEMONSTRATION ONLY — Not for pharmacological or clinical decision-making. Values are heuristic simulation estimates and not validated molecular chemistry.",
+        is_synthetic_simulation=True
     )
+

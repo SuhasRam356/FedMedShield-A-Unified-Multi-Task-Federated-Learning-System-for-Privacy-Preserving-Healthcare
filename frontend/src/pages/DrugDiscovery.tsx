@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import DrugScreenForm from '../components/forms/DrugScreenForm';
+import DemoNoticeBanner from '../components/common/DemoNoticeBanner';
 import { FlaskConical, Atom, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
 import drugService, { CompoundScreenResponse } from '../services/drug.service';
 
@@ -23,10 +24,10 @@ export const DrugDiscovery: React.FC = () => {
           target_protein: targetProtein,
           predicted_kd_nm: 14.8,
           binding_affinity_score: -9.24,
-          bioactivity_class: 'Highly Active (Sub-micromolar)',
+          bioactivity_class: 'Demonstration: High Simulated Affinity',
           druggability_probability: 0.94,
-          safety_admet_flag: 'Low Toxicity Risk (Lipinski Rule of 5 Compliant)',
-          recommendation: 'Strong candidate for lead optimization and in-vitro binding assays.'
+          safety_admet_flag: 'Simulation Estimate: Low Risk Indicator (Unverified)',
+          recommendation: 'Simulation prototype estimate: candidate exhibits simulated binding in demonstration pass. Validated wet-lab assay required.'
         });
         setIsScreening(false);
       }, 1000);
@@ -43,6 +44,13 @@ export const DrugDiscovery: React.FC = () => {
           Federated drug-target affinity modeling without exposing proprietary pharmaceutical library SMILES.
         </p>
       </div>
+
+      <DemoNoticeBanner
+        title="P0 Data Flow & Safety Notice — Centralized Prototype Transmission"
+        message="SMILES structures entered below are transmitted to the central demonstration API (/api/drug/screen) and evaluated with a heuristic property approximation formula. This transmission is NOT protected by SecAgg (SecAgg operates on federated model weights, not raw REST API payloads). Do not submit proprietary or confidential chemical structures, and do not use scores for synthesis or pharmacology decisions."
+        variant="warning"
+      />
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         <div>
@@ -94,9 +102,12 @@ export const DrugDiscovery: React.FC = () => {
                 </div>
                 <div className="pt-2 border-t border-surfaceHighlight">
                   <span className="text-[11px] font-semibold text-textMuted uppercase tracking-wider block mb-1">
-                    Clinical Chemist Recommendation:
+                    Simulation Prototype Indicator:
                   </span>
                   <p className="text-xs text-textMain leading-relaxed">{result.recommendation}</p>
+                </div>
+                <div className="mt-2 p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300">
+                  ⚠️ <strong>Research Notice:</strong> Output is a heuristic simulation estimate. Validated wet-lab assays and computational docking are required before chemical synthesis.
                 </div>
               </div>
             </div>
@@ -108,15 +119,16 @@ export const DrugDiscovery: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-textMain">Awaiting Compound SMILES</h3>
                 <p className="text-sm text-textMuted max-w-sm mt-1">
-                  Enter candidate molecular structures on the left to evaluate bioactivity across federated target receptors.
+                  Enter candidate molecular structures on the left to evaluate simulated affinity estimates.
                 </p>
               </div>
-              <div className="flex items-center space-x-2 text-xs text-green-400 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+              <div className="flex items-center space-x-2 text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Proprietary SMILES Protected by SecAgg</span>
+                <span>Central Demo Screening (Public / Synthetic Structures Only)</span>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </div>

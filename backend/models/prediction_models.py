@@ -32,3 +32,6 @@ class PredictionResult(BaseModel):
     confidence: float
     recommended_interventions: List[str]
     model_version: str
+    disclaimer: str = "RESEARCH DEMONSTRATION ONLY — Not for clinical or diagnostic decision-making. Outputs are synthetic heuristic estimates and do not constitute medical advice or validated inference."
+    is_synthetic_simulation: bool = True
+

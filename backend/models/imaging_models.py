@@ -29,3 +29,6 @@ class ImagingPredictionResponse(BaseModel):
     detected_regions: List[DetectedRegion] = []
     heatmap_available: bool = True
     inference_time_ms: float
+    disclaimer: str = "RESEARCH DEMONSTRATION ONLY — Not for diagnostic or radiological decision-making. Outputs are simulated demonstration values."
+    is_synthetic_simulation: bool = True
+

@@ -26,3 +26,6 @@ class IntrusionDetectionAlert(BaseModel):
     confidence: float
     affected_node: str
     mitigation_action: str
+    disclaimer: str = "RESEARCH DEMONSTRATION ONLY — Simulated detection rule. No active network mitigation, firewall rule, or certificate revocation was executed."
+    is_synthetic_simulation: bool = True
+

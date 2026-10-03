@@ -1,4 +1,5 @@
 import React from 'react';
+import DemoNoticeBanner from '../components/common/DemoNoticeBanner';
 import { Shield, Lock, FileText, Download, CheckCircle2, Award } from 'lucide-react';
 import PrivacyBudgetGauge from '../components/charts/PrivacyBudgetGauge';
 
@@ -7,28 +8,34 @@ export const PrivacyReport: React.FC = () => {
     <div className="space-y-6 fade-in pb-20">
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Privacy & Compliance Audit Report</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Privacy & Compliance Telemetry (Simulation)</h1>
           <p className="text-textMuted mt-1">
-            Formal mathematical privacy certificates, Renyi DP accounting, and Bonawitz SecAgg verification.
+            Demonstration of DP-SGD budget accounting concepts and pairwise masking workflow telemetry.
           </p>
         </div>
-        <button className="flex items-center space-x-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all">
+        <button className="flex items-center space-x-2 bg-primary/80 hover:bg-primary text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all">
           <Download size={16} />
-          <span>Export Regulatory Audit (PDF)</span>
+          <span>Export Demonstration Log (PDF)</span>
         </button>
       </div>
+
+      <DemoNoticeBanner
+        title="P0 Privacy Telemetry Notice — Simulated Privacy Budget & Verification Display"
+        message="The differential privacy budgets (ε, δ), clipping bounds, and secure aggregation logs presented below are simulated demonstration metrics. They do not represent a formally proven or calibrated patient-level DP-SGD guarantee, nor do they substantiate legal HIPAA or GDPR compliance certifications. Do not use for regulatory or compliance audits."
+        variant="warning"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <PrivacyBudgetGauge currentEpsilon={1.5} maxEpsilon={5.0} delta={1e-5} />
 
         <div className="bg-surface border border-surfaceHighlight rounded-xl p-5 shadow-glow flex flex-col justify-between">
           <div>
-            <div className="flex items-center space-x-2 text-green-400 mb-2">
+            <div className="flex items-center space-x-2 text-amber-400 mb-2">
               <Award className="w-5 h-5" />
-              <h3 className="font-semibold text-textMain text-base">HIPAA & GDPR Privacy Guarantee</h3>
+              <h3 className="font-semibold text-textMain text-base">Demonstration Privacy Profile (Simulated DP-SGD)</h3>
             </div>
             <p className="text-xs text-textMuted leading-relaxed">
-              No patient identifiability reconstruction is mathematically feasible under (ε=1.5, δ=1e-5)-DP. All client gradients are masked via 256-bit Diffie-Hellman secrets before leaving hospital firewall perimeters.
+              Nominal simulation configuration targeting (ε=1.5, δ=1e-5). Formal patient-level differential privacy in production requires calibrated subsampling, empirical membership-inference auditing, and certified cryptographic key-agreement before regulatory compliance certification.
             </p>
           </div>
 
@@ -49,7 +56,7 @@ export const PrivacyReport: React.FC = () => {
       <div className="bg-surface border border-surfaceHighlight rounded-xl p-6 shadow-glow">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
           <Lock className="w-5 h-5 mr-2 text-accent" />
-          SecAgg Cryptographic Verification Log
+          Demonstration SecAgg Protocol Workflow Log
         </h3>
 
         <div className="overflow-x-auto">
@@ -60,7 +67,7 @@ export const PrivacyReport: React.FC = () => {
                 <th className="pb-3 pr-4">Protocol Stage</th>
                 <th className="pb-3 pr-4">Key Agreement</th>
                 <th className="pb-3 pr-4">Mask Neutralization</th>
-                <th className="pb-3">Audit Verification</th>
+                <th className="pb-3">Verification Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surfaceHighlight">
@@ -68,11 +75,11 @@ export const PrivacyReport: React.FC = () => {
                 <tr key={round} className="hover:bg-background/40 transition-colors">
                   <td className="py-3 pr-4 font-mono font-bold text-white">Round #{round}</td>
                   <td className="py-3 pr-4 text-textMain">Round Completed & Aggregated</td>
-                  <td className="py-3 pr-4 font-mono text-textMuted">ECDH Curve25519 (Pairwise)</td>
-                  <td className="py-3 pr-4 text-green-400 font-mono">Zero-Sum Residual Verified</td>
+                  <td className="py-3 pr-4 font-mono text-textMuted">Pairwise Masking (Prototype)</td>
+                  <td className="py-3 pr-4 text-amber-400 font-mono">Zero-Sum Residual Verified (Simulated)</td>
                   <td className="py-3">
-                    <span className="inline-flex items-center text-green-400">
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Valid Cryptographic Proof
+                    <span className="inline-flex items-center text-amber-400">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Simulated Verification Check
                     </span>
                   </td>
                 </tr>
@@ -81,6 +88,7 @@ export const PrivacyReport: React.FC = () => {
           </table>
         </div>
       </div>
+
     </div>
   );
 };

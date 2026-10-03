@@ -4,7 +4,7 @@ FedMedShield Framework - Clinical User Registration & JWT Authentication
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends
-from backend.models.auth_models import UserRegister, UserLogin, Token, UserResponse
+from backend.models.auth_models import UserRegister, UserLogin, Token, UserResponse, UserRole
 from backend.utils.jwt_utils import verify_password, get_password_hash, create_access_token
 from backend.middleware.auth_middleware import get_current_user
 from datetime import timedelta
@@ -38,6 +38,13 @@ MOCK_USERS_DB = {
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_data: UserRegister):
+    # Security guardrail: disallow self-assigning admin role
+    if user_data.role == UserRole.ADMIN or str(user_data.role).lower() == "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator role cannot be self-assigned via public registration."
+        )
+
     if user_data.username in MOCK_USERS_DB:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,6 +90,17 @@ async def login(credentials: UserLogin):
 
 @router.get("/me", response_model=UserResponse)
 async def get_profile(current_user: dict = Depends(get_current_user)):
-    username = current_user.get("username", "dr_smith")
-    user = MOCK_USERS_DB.get(username, MOCK_USERS_DB["dr_smith"])
+    username = current_user.get("sub") or current_user.get("username")
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user token payload"
+        )
+    user = MOCK_USERS_DB.get(username)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User '{username}' not found in active directory"
+        )
     return user
+

@@ -28,10 +28,11 @@ export const DrugScreenForm: React.FC<DrugScreenFormProps> = ({ onScreen, isLoad
       <div className="flex items-center space-x-3 border-b border-surfaceHighlight pb-4">
         <FlaskConical className="w-5 h-5 text-accent" />
         <div>
-          <h3 className="font-semibold text-textMain text-base">Small Molecule Candidate Screening</h3>
-          <p className="text-xs text-textMuted">Evaluate chemical SMILES against target protein binding pockets</p>
+          <h3 className="font-semibold text-textMain text-base">Small Molecule Candidate Screening (Demonstration)</h3>
+          <p className="text-xs text-textMuted">Evaluate chemical SMILES against target protein via simulated affinity estimation</p>
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
