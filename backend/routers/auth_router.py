@@ -3,6 +3,7 @@ Authentication Router
 FedMedShield Framework - Clinical User Registration & JWT Authentication
 """
 
+import os
 from fastapi import APIRouter, HTTPException, status, Depends
 from backend.models.auth_models import UserRegister, UserLogin, Token, UserResponse, UserRole
 from backend.utils.jwt_utils import verify_password, get_password_hash, create_access_token
@@ -11,29 +12,33 @@ from datetime import timedelta
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# In-memory users store for instant responsiveness
-MOCK_USERS_DB = {
-    "dr_smith": {
-        "id": 1,
-        "username": "dr_smith",
-        "email": "dr.smith@fedmedshield.org",
-        "hashed_password": get_password_hash("password123"),
-        "full_name": "Dr. Sarah Smith, MD",
-        "role": "researcher",
-        "institution": "General Hospital - New York",
-        "is_active": True
-    },
-    "admin": {
-        "id": 2,
-        "username": "admin",
-        "email": "admin@fedmedshield.org",
-        "hashed_password": get_password_hash("admin123"),
-        "full_name": "System Administrator",
-        "role": "admin",
-        "institution": "FedMedShield Global Operations",
-        "is_active": True
+ENABLE_DEMO_AUTH = os.getenv("ENABLE_DEMO_AUTH", "true").lower() in ("true", "1", "yes")
+
+# In-memory users store for development / demo responsiveness
+MOCK_USERS_DB = {}
+if ENABLE_DEMO_AUTH:
+    MOCK_USERS_DB = {
+        "dr_smith": {
+            "id": 1,
+            "username": "dr_smith",
+            "email": "dr.smith@fedmedshield.org",
+            "hashed_password": get_password_hash("password123"),
+            "full_name": "Dr. Sarah Smith, MD",
+            "role": "researcher",
+            "institution": "General Hospital - New York",
+            "is_active": True
+        },
+        "admin": {
+            "id": 2,
+            "username": "admin",
+            "email": "admin@fedmedshield.org",
+            "hashed_password": get_password_hash("admin123"),
+            "full_name": "System Administrator",
+            "role": "admin",
+            "institution": "FedMedShield Global Operations",
+            "is_active": True
+        }
     }
-}
 
 
 @router.post("/register", response_model=UserResponse)

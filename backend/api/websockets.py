@@ -10,10 +10,11 @@ exhaustion, and live metrics without polling.
 import asyncio
 import json
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from database.db_config import get_redis
+from backend.database.db_config import get_redis
+from backend.utils.jwt_utils import decode_access_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ws", tags=["WebSockets"])
@@ -55,44 +56,54 @@ async def redis_listener(task_id: str):
     Background task that listens to a Redis channel and broadcasts 
     to all WebSockets connected to this task_id.
     """
-    redis = get_redis()
-    if not redis:
-        logger.error("Redis not available for Pub/Sub listener.")
+    try:
+        redis = await get_redis()
+    except Exception:
+        redis = None
+
+    if not redis or not hasattr(redis, "pubsub"):
+        logger.info(f"Live Redis pubsub not available for task {task_id}. Operating in memory mode.")
         return
 
     channel_name = f"channel_task_{task_id}"
-    pubsub = redis.pubsub()
-    await pubsub.subscribe(channel_name)
-    logger.info(f"Started Redis listener for {channel_name}")
-
     try:
+        pubsub = redis.pubsub()
+        await pubsub.subscribe(channel_name)
+        logger.info(f"Started Redis listener for {channel_name}")
+
         async for message in pubsub.listen():
             if message["type"] == "message":
                 data = json.loads(message["data"])
                 await manager.broadcast(task_id, data)
     except asyncio.CancelledError:
         logger.info(f"Redis listener for {channel_name} cancelled.")
+    except Exception as e:
+        logger.error(f"Redis listener error: {e}")
     finally:
-        await pubsub.unsubscribe(channel_name)
+        try:
+            await pubsub.unsubscribe(channel_name)
+        except Exception:
+            pass
 
 
 @router.websocket("/{task_id}")
-async def websocket_endpoint(websocket: WebSocket, task_id: str):
+async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional[str] = None):
     """
-    Endpoint for React UI to connect and receive live updates for a specific task.
+    Protected endpoint for React UI to receive live metrics for a specific task.
+    Requires valid JWT token query parameter: /ws/{task_id}?token={jwt}
     """
+    user = decode_access_token(token) if token else None
+    if not user:
+        logger.warning(f"Unauthorized WebSocket connection attempt to task {task_id}")
+        await websocket.close(code=1008)  # 1008: Policy Violation / Unauthorized
+        return
+
     await manager.connect(websocket, task_id)
-    
-    # Start a Redis listener for this task if one isn't running
-    # (In a production setup, we'd ensure only one listener per task, 
-    # but asyncio tasks handle this elegantly enough for this demo).
     listener_task = asyncio.create_task(redis_listener(task_id))
     
     try:
         while True:
-            # Keep connection alive, wait for client to disconnect
             data = await websocket.receive_text()
-            # We can also handle client messages if needed
     except WebSocketDisconnect:
         manager.disconnect(websocket, task_id)
         listener_task.cancel()

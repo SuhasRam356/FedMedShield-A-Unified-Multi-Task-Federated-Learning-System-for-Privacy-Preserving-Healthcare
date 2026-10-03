@@ -16,9 +16,12 @@
 
 ---
 
-**Train powerful AI models across multiple hospitals without ever sharing a single patient record.**
+**A research simulation exploring multi-task federated learning workflows across distributed medical nodes.**
 
-FedMedShield solves one of healthcare's hardest problems: hospitals need large datasets to train accurate AI models, but privacy laws (HIPAA, GDPR) prevent them from sharing patient data. Our system lets each hospital train locally on its own data, then securely combine the learned patterns — not the data — into a single, more powerful global model.
+FedMedShield investigates federated learning architectures across simulated healthcare scenarios (clinical tabular EHR, ResNet imaging, bioactivity screening, and network security). In federated training mode, participating nodes train locally on client-side datasets and transmit only weight updates.
+
+> [!IMPORTANT]
+> **Privacy & Regulatory Scope:** FedMedShield is an academic research prototype and does **not** establish legal HIPAA or GDPR compliance, nor does it certify zero-leakage security. Model weights and metadata are not inherently private without strict institutional governance. Furthermore, while Flower federated training operates on local client loaders, the interactive web demonstration UI inference paths (such as the disease prediction and drug screening dashboards) transmit sample inputs directly to the central demonstration API host for evaluation.
 
 </div>
 
@@ -83,16 +86,16 @@ Traditional machine learning requires centralizing all data in one place — whi
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-Each hospital:
-1. Downloads the current global model
-2. Trains it on its own private patient records
-3. Sends back only the updated model numbers (weights), NOT any patient data
-4. The server averages all hospitals' weights into a better global model
-5. Repeats for multiple rounds until the model converges
+In federated training mode:
+1. The client downloads current global parameters from the Flower server
+2. Trains locally using its node-specific dataset loaders
+3. Computes updated model parameters
+4. The server aggregates client updates into a revised global model checkpoint
+5. The process repeats over configured federation rounds
 
-On top of this, we add **two layers of privacy protection**:
-- **Differential Privacy (DP):** Adds tiny amounts of mathematical noise so that even the model weights cannot reveal information about individual patients
-- **Secure Aggregation (SecAgg):** Encrypts each hospital's weights with secret masks so the central server can never see any individual hospital's contribution — it can only see the final averaged result
+The framework incorporates **experimental privacy mechanisms** for research evaluation:
+- **Differential Privacy (DP Prototype):** Demonstrates gradient clipping and calibrated Gaussian noise injection to study empirical privacy-utility trade-offs (not a certified formal privacy proof).
+- **Secure Aggregation (SecAgg Prototype):** Demonstrates pairwise additive mask cancellation to illustrate how servers can aggregate sums without observing unmasked raw weights in a benign setting.
 
 ---
 
@@ -738,19 +741,17 @@ This is the core innovation of FedMedShield — two independent privacy mechanis
 
 ### 5.1 Differential Privacy Engine (`privacy/differential_privacy.py`)
 
-**What it does in simple words:**
+**Algorithmic Prototype Context:**
 
-Even though hospitals only send model weights (not raw data), a clever attacker could potentially reverse-engineer information about individual patients from those weights. Differential Privacy prevents this by adding carefully calibrated random noise to the weights before they leave the hospital.
+Model updates and gradient updates in federated learning remain vulnerable to reconstruction, membership inference, and attribute extraction if shared unprotected. The differential privacy module demonstrates how noise injection algorithms mitigate these empirical risks in a research environment.
 
-**How it works step by step:**
+**Prototype implementation mechanisms:**
 
-1. **Per-Layer Gradient Clipping:** Before any noise is added, each layer's gradient is clipped to a maximum norm C. This bounds the maximum influence any single patient can have on the model.
+1. **Gradient Clipping Simulation:** Demonstrates bounding parameter updates to a maximum L2-norm threshold C, limiting individual contribution scale.
 
-2. **Gaussian Noise Injection:** After clipping, Gaussian noise with standard deviation σ = C × (noise_multiplier) is added to each gradient. The noise is large enough to mask any individual's contribution but small enough that the model still learns.
+2. **Gaussian Noise Mechanism:** Injects simulated Gaussian perturbation proportional to sensitivity and noise multipliers to illustrate privacy perturbation.
 
-3. **Rényi Differential Privacy (RDP) Accounting:** Instead of the looser (ε, δ)-DP, we track privacy loss using Rényi Divergence which gives tighter bounds. This means we can achieve the same privacy guarantee with less noise — better model accuracy.
-
-4. **Adaptive Budget Management:** The system tracks how much privacy budget (ε) has been consumed across all rounds. When the budget approaches the maximum (configurable, default 10.0), training automatically halts to prevent privacy violations.
+3. **Budget Accounting & Halt Demonstration:** Provides simulated Rényi DP accounting and budget tracking curves in `privacy/dp_engine.py`. In this prototype, budget metrics and auto-halt thresholds illustrate privacy loss tracking workflows, but do not replace an audited, mathematically certified production privacy framework.
 
 **Key parameters:**
 | Parameter | Symbol | Default | Meaning |
@@ -768,13 +769,13 @@ A collection of helper functions for calibrating and generating privacy-preservi
 - `laplace_mechanism()` — Alternative Laplace noise for count queries
 - `subsample_amplification()` — Computes privacy amplification via subsampling
 
-### 5.3 Secure Aggregation Engine (`privacy/secure_aggregation.py`)
+### 5.3 Secure Aggregation Prototype (`privacy/secure_aggregation.py`)
 
-**What it does in simple words:**
+**Algorithmic Prototype Context:**
 
-Even with Differential Privacy, the central server still sees each hospital's (noisy) model weights individually. Secure Aggregation adds another layer: it cryptographically masks each hospital's weights so the server can only see the SUM, never any individual contribution.
+In standard federated averaging, the aggregation coordinator observes individual client weight updates. Secure Aggregation protocols allow the server to compute the sum of client updates without learning individual contributions.
 
-**How it works (Bonawitz Protocol):**
+**Illustrative Mask Cancellation Concept (Bonawitz-Inspired Demonstration):**
 
 ```
 Hospital A's real weights:  [0.5, 0.3, 0.7]
@@ -808,7 +809,11 @@ Step 3: Server sums all masked weights:
                            = [1.7, 1.0, 1.8] ✅
 ```
 
-The server gets the correct aggregated result but **never sees any individual hospital's real weights**.
+The server obtains the aggregate sum in a benign synchronous round.
+
+> [!NOTE]
+> **Implementation Scope & Production Cryptography:** 
+> The implementation in `privacy/secure_aggregation.py` demonstrates the *algebraic concept* of symmetric mask cancellation. Production-grade Secure Aggregation (e.g. Bonawitz et al., CCS 2017) requires Diffie-Hellman key exchanges, Shamir's secret sharing for client dropout tolerance, authenticated encrypted channels (mTLS), and consistency checks against Byzantine servers. The included module is an illustrative prototype for academic simulation and should not be relied upon as a certified cryptographic protocol against adversarial collusion.
 
 ---
 

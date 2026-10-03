@@ -12,7 +12,7 @@ import time
 import torch
 import flwr as fl
 from collections import OrderedDict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import logging
 import numpy as np
 
@@ -261,14 +261,25 @@ FLClient = HospitalClient
 
 
 
+def load_root_certificate(ca_path: Optional[str] = None) -> Optional[bytes]:
+    """Loads root certificate for TLS Flower client if provided."""
+    path = ca_path or os.getenv("FL_CA_CERT")
+    if path and os.path.exists(path):
+        with open(path, "rb") as f:
+            logger.info("Loaded root CA certificate for encrypted Flower client.")
+            return f.read()
+    return None
+
+
 def start_client(
     client_id: str,
     server_address: str = "127.0.0.1:8080",
     max_retries: int = 5,
-    retry_delay: int = 2
+    retry_delay: int = 2,
+    ca_cert: Optional[str] = None
 ):
     """
-    Entry point to start the flower client.
+    Entry point to start the flower client with optional TLS/mTLS encryption.
     Normalizes localhost to 127.0.0.1 to avoid Windows IPv6 resolution issues,
     and adds retry logic to wait for the FL server if not yet ready.
     """
@@ -279,13 +290,18 @@ def start_client(
         server_address = server_address.replace("0.0.0.0:", "127.0.0.1:")
 
     client = HospitalClient(client_id=client_id)
-    logger.info(f"Connecting to FL server at {server_address}...")
+    root_cert = load_root_certificate(ca_cert)
+    if root_cert:
+        logger.info(f"Connecting to encrypted TLS FL server at {server_address}...")
+    else:
+        logger.warning(f"Connecting to FL server at {server_address} in UNENCRYPTED PLAINTEXT mode.")
     
     for attempt in range(1, max_retries + 1):
         try:
             fl.client.start_numpy_client(
                 server_address=server_address,
                 client=client,
+                root_certificates=root_cert
             )
             break
         except Exception as e:
@@ -307,6 +323,7 @@ if __name__ == "__main__":
     parser.add_argument("--id", type=str, required=True, help="Client ID (e.g., hospital-a)")
     parser.add_argument("--server", type=str, default="127.0.0.1:8080", help="Server address (default: 127.0.0.1:8080)")
     parser.add_argument("--retries", type=int, default=5, help="Max connection retries")
+    parser.add_argument("--ca-cert", type=str, default=None, help="Path to CA certificate for TLS")
     args = parser.parse_args()
     
-    start_client(args.id, args.server, max_retries=args.retries)
+    start_client(args.id, args.server, max_retries=args.retries, ca_cert=args.ca_cert)

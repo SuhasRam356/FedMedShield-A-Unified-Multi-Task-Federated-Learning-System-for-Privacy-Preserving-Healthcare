@@ -3,14 +3,19 @@ Federated Learning Task & Node Management Router
 FedMedShield Framework - Multi-Task Orchestration API
 """
 
-from fastapi import APIRouter, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, HTTPException, status, BackgroundTasks, Depends
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import asyncio
 
 from backend.models.fl_models import FLTaskCreate, FLTaskResponse, FLMetricsUpdate, HospitalNodeInfo
+from backend.middleware.auth_middleware import get_current_user
 
-router = APIRouter(prefix="/fl", tags=["Federated Learning"])
+router = APIRouter(
+    prefix="/fl",
+    tags=["Federated Learning"],
+    dependencies=[Depends(get_current_user)]
+)
 
 # In-memory tasks store
 MOCK_TASKS: Dict[int, Dict[str, Any]] = {

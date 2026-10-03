@@ -286,15 +286,99 @@ def start_server(
             initial_parameters=initial_parameters,
         )
 
-    # Start Server with 0.0.0.0 host and round timeout
-    logger.info(f"Binding FL server to {server_address}...")
+def load_tls_certificates(
+    ca_cert: Optional[str] = None,
+    server_cert: Optional[str] = None,
+    server_key: Optional[str] = None
+) -> Optional[Tuple[bytes, bytes, bytes]]:
+    """Loads TLS certificates from file paths or environment variables if present."""
+    ca_path = ca_cert or os.getenv("FL_CA_CERT")
+    cert_path = server_cert or os.getenv("FL_SERVER_CERT")
+    key_path = server_key or os.getenv("FL_SERVER_KEY")
+
+    if cert_path and key_path and os.path.exists(cert_path) and os.path.exists(key_path):
+        with open(cert_path, "rb") as f:
+            cert_bytes = f.read()
+        with open(key_path, "rb") as f:
+            key_bytes = f.read()
+        ca_bytes = b""
+        if ca_path and os.path.exists(ca_path):
+            with open(ca_path, "rb") as f:
+                ca_bytes = f.read()
+        logger.info("Loaded TLS certificates for encrypted Flower server.")
+        return (ca_bytes, cert_bytes, key_bytes)
+    return None
+
+
+def start_server(
+    task_name: str = "ehr",
+    num_rounds: int = 20,
+    num_hospitals: int = 4,
+    min_clients: int = 2,
+    round_timeout: int = 300,
+    use_secagg: bool = True,
+    use_dp: bool = True,
+    strategy: Optional[fl.server.strategy.Strategy] = None,
+    server_address: str = "0.0.0.0:8080",
+    ca_cert: Optional[str] = None,
+    server_cert: Optional[str] = None,
+    server_key: Optional[str] = None
+):
+    """
+    Launches the Flower Federated Learning Server with optional TLS/mTLS encryption.
+    """
+    if strategy is None:
+        # Import the correct model based on task
+        if task_name == "ehr":
+            from modules.module1_ehr.ehr_model import EHRMultiTaskModel
+            initial_model = EHRMultiTaskModel()
+        elif task_name.startswith("imaging"):
+            from modules.module2_imaging.imaging_model import TumorDetector
+            initial_model = TumorDetector()  # Standardizes on 3-class for init
+        elif task_name == "drug":
+            from modules.module3_drug.drug_model import DrugProteinBindingModel
+            initial_model = DrugProteinBindingModel()
+        elif task_name == "ids":
+            from modules.module4_ids.ids_model import IntrusionDetectionModel
+            initial_model = IntrusionDetectionModel()
+        else:
+            raise ValueError(f"Unknown task: {task_name}")
+            
+        initial_weights = [val.cpu().numpy() for _, val in initial_model.state_dict().items()]
+        initial_parameters = ndarrays_to_parameters(initial_weights)
+
+        # Configure Strategy with lowered client thresholds so training succeeds even if clients fail
+        effective_min_clients = min(min_clients, num_hospitals)
+        strategy = SecureFedAvgStrategy(
+            task_name=task_name,
+            use_secagg=use_secagg,
+            use_dp=use_dp,
+            num_hospitals=num_hospitals,
+            fraction_fit=1.0,  # Train on all clients
+            fraction_evaluate=1.0,  # Eval on all clients
+            min_fit_clients=effective_min_clients,          # ⬅️ Lower this if clients fail
+            min_available_clients=effective_min_clients,    # ⬅️ Lower this too
+            min_evaluate_clients=effective_min_clients,
+            initial_parameters=initial_parameters,
+        )
+
+    certs = load_tls_certificates(ca_cert=ca_cert, server_cert=server_cert, server_key=server_key)
+    if certs:
+        logger.info(f"Binding encrypted TLS FL server to {server_address}...")
+    else:
+        logger.warning(
+            "FL server starting in UNENCRYPTED PLAINTEXT mode. "
+            "For production clinical federation, configure TLS/mTLS via --server-cert and --server-key or FL_SERVER_CERT and FL_SERVER_KEY."
+        )
+
     fl.server.start_server(
-        server_address=server_address,  # Use 0.0.0.0 NOT localhost
+        server_address=server_address,
         config=fl.server.ServerConfig(
             num_rounds=num_rounds,
-            round_timeout=round_timeout  # 5 min timeout per round
+            round_timeout=round_timeout
         ),
         strategy=strategy,
+        certificates=certs
     )
 
 
@@ -311,6 +395,9 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8080, help="Server port (default: 8080)")
     parser.add_argument("--no-secagg", action="store_true", help="Disable Secure Aggregation")
     parser.add_argument("--no-dp", action="store_true", help="Disable Differential Privacy")
+    parser.add_argument("--ca-cert", type=str, default=None, help="Path to CA certificate for mTLS")
+    parser.add_argument("--server-cert", type=str, default=None, help="Path to server certificate")
+    parser.add_argument("--server-key", type=str, default=None, help="Path to server private key")
     args = parser.parse_args()
     
     server_addr = f"{args.host}:{args.port}"
@@ -323,4 +410,7 @@ if __name__ == "__main__":
         use_secagg=not args.no_secagg,
         use_dp=not args.no_dp,
         server_address=server_addr,
+        ca_cert=args.ca_cert,
+        server_cert=args.server_cert,
+        server_key=args.server_key,
     )

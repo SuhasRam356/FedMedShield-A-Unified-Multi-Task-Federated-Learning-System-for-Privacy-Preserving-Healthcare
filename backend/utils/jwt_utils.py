@@ -15,7 +15,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "fedmedshield-super-secure-secret-key-2026-production")
+_DEFAULT_SECRET = "fedmedshield-dev-secret-key-change-in-production"
+_ENV = os.getenv("ENVIRONMENT", "development").lower()
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+
+if not SECRET_KEY:
+    if _ENV in ("production", "prod"):
+        raise RuntimeError("CRITICAL SECURITY ERROR: SECRET_KEY must be explicitly set in production.")
+    SECRET_KEY = _DEFAULT_SECRET
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours
 
@@ -30,22 +38,36 @@ def _b64_decode(data_str: str) -> bytes:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verifies a raw password against the hashed string using sha256 + salt."""
+    """Verifies a password against PBKDF2-HMAC-SHA256 hash without plaintext fallbacks."""
     try:
-        if hashed_password.startswith("sha256$"):
+        if hashed_password.startswith("pbkdf2_sha256$"):
+            _, iters_str, salt, expected_hash = hashed_password.split("$")
+            dk = hashlib.pbkdf2_hmac(
+                "sha256",
+                plain_password.encode('utf-8'),
+                salt.encode('utf-8'),
+                int(iters_str)
+            )
+            return hmac.compare_digest(dk.hex(), expected_hash)
+        elif hashed_password.startswith("sha256$"):
             _, salt, h = hashed_password.split("$")
             computed = hashlib.sha256((salt + plain_password).encode('utf-8')).hexdigest()
             return hmac.compare_digest(computed, h)
-        return plain_password == hashed_password
+        return False
     except Exception:
-        return plain_password == hashed_password
+        return False
 
 
 def get_password_hash(password: str) -> str:
-    """Generates salted SHA256 password hash."""
-    salt = os.urandom(8).hex()
-    h = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
-    return f"sha256${salt}${h}"
+    """Generates standard PBKDF2-HMAC-SHA256 hash with 100,000 iterations."""
+    salt = os.urandom(16).hex()
+    dk = hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode('utf-8'),
+        salt.encode('utf-8'),
+        100000
+    )
+    return f"pbkdf2_sha256$100000${salt}${dk.hex()}"
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:

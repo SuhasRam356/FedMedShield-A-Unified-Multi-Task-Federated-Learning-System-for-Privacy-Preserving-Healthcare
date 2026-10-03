@@ -8,8 +8,8 @@ export const useWebSockets = (taskId: number | null) => {
   useEffect(() => {
     if (!taskId) return;
 
-    // In dev, connect to localhost:8000/ws/{taskId}
-    const wsUrl = `ws://127.0.0.1:8000/ws/${taskId}`;
+    const token = localStorage.getItem('token');
+    const wsUrl = `ws://127.0.0.1:8000/ws/${taskId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     
     ws.current = new WebSocket(wsUrl);
 
