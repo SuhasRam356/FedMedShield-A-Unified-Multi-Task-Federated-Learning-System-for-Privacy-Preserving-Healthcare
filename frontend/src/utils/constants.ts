@@ -15,7 +15,7 @@ export const FL_CONFIG = {
 
 export const TASK_TYPES = [
   { id: 'ehr', label: 'EHR Multi-Task (Sepsis & COVID)', color: 'from-blue-500 to-indigo-500' },
-  { id: 'imaging_tumor', label: 'ResNet50 Brain Tumor MRI', color: 'from-emerald-500 to-teal-500' },
+  { id: 'imaging_tumor', label: 'ResNet18 Brain Tumor MRI', color: 'from-emerald-500 to-teal-500' },
   { id: 'imaging_glaucoma', label: 'Fundus Glaucoma Screening', color: 'from-cyan-500 to-blue-500' },
   { id: 'drug', label: 'Drug-Target Bioactivity Screening', color: 'from-purple-500 to-pink-500' },
   { id: 'ids', label: 'Network Cybersecurity IDS', color: 'from-amber-500 to-red-500' },

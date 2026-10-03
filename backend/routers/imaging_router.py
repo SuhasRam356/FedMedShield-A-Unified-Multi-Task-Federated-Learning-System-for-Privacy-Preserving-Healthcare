@@ -1,6 +1,6 @@
 """
 Medical Imaging Diagnosis Router (Brain MRI & Glaucoma Screening)
-FedMedShield Framework - ResNet50 Federated Image Classifier
+FedMedShield Framework - ResNet18 Federated Image Classifier
 """
 
 import time

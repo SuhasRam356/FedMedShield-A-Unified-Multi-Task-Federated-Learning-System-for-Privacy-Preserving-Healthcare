@@ -11,6 +11,9 @@ const Settings: React.FC = () => {
         <p className="text-textMuted mt-1">
           Configure overarching system preferences and network parameters.
         </p>
+        <div className="mt-3 p-3 bg-card border border-white/10 rounded-lg text-xs text-textMuted flex items-center justify-between">
+          <span>ℹ️ Prototype Notice: Settings configured in this view represent local presentation defaults for UI demonstration.</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

@@ -28,8 +28,12 @@ def load_global_model(task_name: str, npz_path: str, device: torch.device) -> to
         from modules.module1_ehr.ehr_model import EHRMultiTaskModel
         model = EHRMultiTaskModel()
     elif task_name.startswith("imaging"):
-        from modules.module2_imaging.imaging_model import TumorDetector
-        model = TumorDetector() 
+        if "glaucoma" in task_name:
+            from modules.module2_imaging.imaging_model import GlaucomaDetector
+            model = GlaucomaDetector()
+        else:
+            from modules.module2_imaging.imaging_model import TumorDetector
+            model = TumorDetector() 
     elif task_name == "drug":
         from modules.module3_drug.drug_model import DrugProteinBindingModel
         model = DrugProteinBindingModel()
@@ -54,24 +58,23 @@ def load_global_model(task_name: str, npz_path: str, device: torch.device) -> to
     model.eval()
     return model
 
-def get_global_test_loader(task_name: str):
+def get_global_test_loader(task_name: str, hospital_id: str = "hospital-a"):
     """Loads the held-out test set for the task."""
-    print(f"Loading global test data for {task_name}...")
-    # In a real scenario, this would load a separate dataset not seen by any hospital.
-    # For this simulation, we use the hospital-a data factory's test split.
+    print(f"Loading global test data for {task_name} (eval site: {hospital_id})...")
     
     if task_name == "ehr":
         from data.ehr_data.data_loader import EHRDataLoaderFactory
-        loaders = EHRDataLoaderFactory().get_hospital_dataloaders("global_test")
+        loaders = EHRDataLoaderFactory().get_hospital_dataloaders(hospital_id)
     elif task_name.startswith("imaging"):
         from data.imaging_data.data_loader import ImagingDataLoaderFactory
-        loaders = ImagingDataLoaderFactory().get_hospital_dataloaders("global_test")
+        img_task = "glaucoma" if "glaucoma" in task_name else ("covid_xray" if "covid" in task_name else "tumor")
+        loaders = ImagingDataLoaderFactory().get_hospital_dataloaders(hospital_id, task=img_task)
     elif task_name == "drug":
         from data.drug_data.data_loader import DrugDataLoaderFactory
-        loaders = DrugDataLoaderFactory().get_hospital_dataloaders("global_test")
+        loaders = DrugDataLoaderFactory().get_hospital_dataloaders(hospital_id)
     elif task_name == "ids":
         from data.network_data.data_loader import NetworkDataLoaderFactory
-        loaders = NetworkDataLoaderFactory().get_hospital_dataloaders("global_test")
+        loaders = NetworkDataLoaderFactory().get_hospital_dataloaders(hospital_id)
         
     return loaders["test"]
 
@@ -89,25 +92,30 @@ def evaluate(task_name: str, npz_path: str):
     with torch.no_grad():
         for batch in test_loader:
             if task_name == "ehr":
-                x = batch["clinical_features"].to(device)
-                y = batch["covid_labels"].to(device) # Evaluating COVID risk head
-                logits = model(x)["covid_logits"]
-                probs = torch.softmax(logits, dim=1)[:, 1] # Prob of class 1
+                x = batch["features"].to(device)
+                y = batch["covid_label"].to(device) # Evaluating COVID risk head
+                logits = model(x)["covid_logit"]
+                probs = torch.sigmoid(logits)
                 
             elif task_name.startswith("imaging"):
-                x, y = batch[0].to(device), batch[1].to(device)
-                logits = model(x)
+                x = batch["image"].to(device)
+                y = batch["label"].to(device)
+                out = model(x)
+                logits = out["logits"] if isinstance(out, dict) else out
                 probs = torch.softmax(logits, dim=1) # Multiclass prob
                 
             elif task_name == "drug":
-                fp = batch["fingerprints"].to(device)
-                prot = batch["protein_embeddings"].to(device)
-                y = batch["affinities"].to(device)
-                probs = model(fp, prot)["affinity_pred"] # Regression val
+                fp = batch["drug_features"].to(device)
+                prot = batch["protein_features"].to(device)
+                y = batch["binding_affinity"].to(device)
+                out = model(fp, prot)
+                probs = out["binding_affinity"] if isinstance(out, dict) else out # Regression val
                 
             elif task_name == "ids":
-                x, y = batch[0].to(device), batch[1].to(device)
-                logits = model(x)
+                x = batch["features"].to(device)
+                y = batch["label"].to(device)
+                out = model(x)
+                logits = out["logits"] if isinstance(out, dict) else out
                 probs = torch.softmax(logits, dim=1)
 
             all_y_true.append(y.cpu().numpy())

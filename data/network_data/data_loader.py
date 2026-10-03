@@ -131,25 +131,46 @@ def load_nsl_kdd(data_dir: str) -> Optional[pd.DataFrame]:
 
 def preprocess_nsl_kdd(df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Preprocess NSL-KDD DataFrame: encode categoricals, map attack labels.
+    Preprocess NSL-KDD DataFrame: encode categoricals with stable schema, map attack labels.
 
     Args:
         df: Raw NSL-KDD DataFrame.
 
     Returns:
-        Tuple of (feature matrix, label array).
+        Tuple of (feature matrix of shape [N, 41], label array).
     """
     # Map detailed attack types to 5 categories
     df["label"] = df["attack_type"].str.strip().str.lower().map(ATTACK_MAP)
-    # Handle unmapped attacks as "Normal"
-    df["label"] = df["label"].fillna("Normal")
+    # Handle unmapped attacks as "Probe" with explicit warning (do not silently classify as Normal)
+    unmapped_count = int(df["label"].isna().sum())
+    if unmapped_count > 0:
+        logger.warning(
+            f"Found {unmapped_count} unmapped attack types in NSL-KDD. "
+            f"Classifying as anomalous 'Probe' category, not 'Normal'."
+        )
+        df["label"] = df["label"].fillna("Probe")
+        
     label_encoder = LabelEncoder()
     label_encoder.fit(ATTACK_CLASSES)
     labels = label_encoder.transform(df["label"].values)
 
-    # Encode categorical features
+    # Encode categorical features with fixed schema matching 41 features
     categorical_cols = ["protocol_type", "service", "flag"]
-    df_encoded = pd.get_dummies(df[NSL_KDD_FEATURES], columns=categorical_cols, drop_first=True)
+    cat_vocab = {
+        "protocol_type": {p: float(i) for i, p in enumerate(PROTOCOLS)},
+        "service": {s: float(i) for i, s in enumerate(SERVICES)},
+        "flag": {f: float(i) for i, f in enumerate(FLAGS)},
+    }
+    df_encoded = df[NSL_KDD_FEATURES].copy()
+    for col in categorical_cols:
+        df_encoded[col] = (
+            df_encoded[col]
+            .astype(str)
+            .str.lower()
+            .map(cat_vocab[col])
+            .fillna(float(len(cat_vocab[col])))
+            .astype(np.float32)
+        )
 
     features = df_encoded.values.astype(np.float32)
     return features, labels

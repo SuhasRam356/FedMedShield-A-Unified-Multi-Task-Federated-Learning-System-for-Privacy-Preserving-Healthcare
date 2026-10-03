@@ -22,9 +22,9 @@ if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
 # Database connections
-from database.postgres_db import init_postgres_tables, close_postgres_connection
-from database.mongo_db import MongoDBManager
-from database.redis_db import RedisDBManager
+from backend.database.postgres_db import init_postgres_tables, close_postgres_connection
+from backend.database.mongo_db import MongoDBManager
+from backend.database.redis_db import RedisDBManager
 
 # Routers (Legacy api/ & New routers/)
 from api.websockets import router as ws_router
@@ -83,18 +83,21 @@ app = FastAPI(
 )
 
 # CORS Configuration
+cors_env = os.getenv("CORS_ORIGINS")
+allowed_origins = [orig.strip() for orig in cors_env.split(",") if orig.strip()] if cors_env else [
+    "http://localhost:5173",   # Vite dev server
+    "http://localhost:3000",   # CRA dev server
+    "http://127.0.0.1:5173",  # Alternative localhost
+    "http://localhost:4173",   # Vite preview server
+    "http://127.0.0.1:4173",  # Alternative preview
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",   # Vite dev server
-        "http://localhost:3000",   # CRA dev server
-        "http://127.0.0.1:5173",  # Alternative localhost
-        "http://localhost:4173",   # Vite preview server
-        "http://127.0.0.1:4173",  # Alternative preview
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -119,7 +122,7 @@ async def root():
         "disclaimer": "RESEARCH & DEMONSTRATION PROTOTYPE ONLY — Not validated for clinical diagnostic use, patient care, medical decision-making, or production security deployment.",
         "modules": [
             "Module 1: Multi-Task Clinical EHR (Sepsis & COVID-19 Demonstration Heuristic)",
-            "Module 2: ResNet50 Medical Imaging (Tumor & Glaucoma Demonstration Heuristic)",
+            "Module 2: ResNet18 Medical Imaging (Tumor & Glaucoma Demonstration Heuristic)",
             "Module 3: Federated Drug Discovery & Bioactivity Screening (Heuristic Prototype)",
             "Module 4: Cybersecurity Intrusion Detection System (Demonstration Rules)"
         ],

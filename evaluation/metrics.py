@@ -53,8 +53,17 @@ def compute_classification_metrics(
         if is_multiclass:
             # One-vs-Rest strategy for multiclass AUROC
             auroc = roc_auc_score(y_true, y_pred_probs, multi_class="ovr", average="macro")
-            # AUPRC is complex for multiclass, we fall back to a weighted average or None
-            auprc = None 
+            # Multiclass AUPRC via one-hot binarization
+            from sklearn.preprocessing import label_binarize
+            classes = np.unique(y_true)
+            if len(classes) > 1:
+                y_bin = label_binarize(y_true, classes=classes)
+                if y_pred_probs.shape[1] == y_bin.shape[1]:
+                    auprc = average_precision_score(y_bin, y_pred_probs, average="macro")
+                else:
+                    auprc = None
+            else:
+                auprc = None
         else:
             auroc = roc_auc_score(y_true, y_pred_probs)
             auprc = average_precision_score(y_true, y_pred_probs)
@@ -71,31 +80,58 @@ def compute_classification_metrics(
         "precision_macro": float(precision),
         "recall_macro": float(recall),
         "f1_macro": float(f1),
-        "auroc": float(auroc) if auroc else None,
-        "auprc": float(auprc) if auprc else None,
+        "auroc": float(auroc) if auroc is not None else None,
+        "auprc": float(auprc) if auprc is not None else None,
         "confusion_matrix": cm.tolist()
     }
     
     return metrics
 
 def compute_regression_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
-    """Metrics for Drug Binding Affinity (MSE, Pearson Correlation, Concordance Index)."""
+    """Metrics for Drug Binding Affinity (MSE, RMSE, MAE, Pearson Correlation, Concordance Index)."""
     from sklearn.metrics import mean_squared_error, mean_absolute_error
     from scipy.stats import pearsonr
     
-    mse = mean_squared_error(y_true, y_pred)
-    mae = mean_absolute_error(y_true, y_pred)
-    rmse = np.sqrt(mse)
+    y_true_flat = np.asarray(y_true).ravel()
+    y_pred_flat = np.asarray(y_pred).ravel()
+
+    mse = mean_squared_error(y_true_flat, y_pred_flat)
+    mae = mean_absolute_error(y_true_flat, y_pred_flat)
+    rmse = float(np.sqrt(mse))
     
     # Pearson Correlation
     try:
-        pearson_corr, _ = pearsonr(y_true.flatten(), y_pred.flatten())
+        pearson_corr, _ = pearsonr(y_true_flat, y_pred_flat)
     except Exception:
         pearson_corr = 0.0
+
+    # Concordance Index (C-Index)
+    n = len(y_true_flat)
+    if n > 1000:
+        rng = np.random.RandomState(42)
+        sample_idx = rng.choice(n, size=1000, replace=False)
+        y_t, y_p = y_true_flat[sample_idx], y_pred_flat[sample_idx]
+        n_sample = 1000
+    else:
+        y_t, y_p = y_true_flat, y_pred_flat
+        n_sample = n
+
+    concordant = 0.0
+    total = 0.0
+    for i in range(n_sample):
+        for j in range(i + 1, n_sample):
+            if y_t[i] != y_t[j]:
+                total += 1.0
+                if (y_t[i] > y_t[j] and y_p[i] > y_p[j]) or (y_t[i] < y_t[j] and y_p[i] < y_p[j]):
+                    concordant += 1.0
+                elif y_p[i] == y_p[j]:
+                    concordant += 0.5
+    c_index = float(concordant / total) if total > 0 else 0.5
         
     return {
         "mse": float(mse),
         "rmse": float(rmse),
         "mae": float(mae),
-        "pearson_r": float(pearson_corr)
+        "pearson_r": float(pearson_corr),
+        "concordance_index": c_index
     }

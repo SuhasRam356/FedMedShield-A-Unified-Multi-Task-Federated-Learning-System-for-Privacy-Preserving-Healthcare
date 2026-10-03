@@ -39,7 +39,7 @@ export const MedicalImaging: React.FC = () => {
   return (
     <div className="space-y-6 fade-in pb-20">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Medical Imaging (Module 2: ResNet50)</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Medical Imaging (Module 2: ResNet18)</h1>
         <p className="text-textMuted mt-1">
           Federated radiological deep learning for Brain MRI Glioblastoma detection and Fundus Glaucoma screening.
         </p>

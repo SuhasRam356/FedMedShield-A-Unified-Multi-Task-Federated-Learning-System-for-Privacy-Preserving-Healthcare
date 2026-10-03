@@ -238,6 +238,7 @@ def train_ehr_model(
     global_model: Optional[nn.Module] = None,
     fedprox_mu: float = 0.0,
     patience: int = 3,
+    criterion: Optional[EHRMultiTaskLoss] = None,
 ) -> Dict[str, object]:
     """
     Complete training loop for the EHR multi-task model.
@@ -256,12 +257,16 @@ def train_ehr_model(
         global_model: Global model for FedProx.
         fedprox_mu: FedProx mu.
         patience: Early stopping patience.
+        criterion: Optional persistent EHRMultiTaskLoss instance to retain learned task uncertainty weights.
 
     Returns:
-        Dict with training history and best model state dict.
+        Dict with training history, model state dict, and loss state dict.
     """
     model = model.to(device)
-    criterion = EHRMultiTaskLoss().to(device)
+    if criterion is None:
+        criterion = EHRMultiTaskLoss().to(device)
+    else:
+        criterion = criterion.to(device)
 
     # Optimizer: AdamW with weight decay
     optimizer = optim.AdamW(
@@ -352,4 +357,5 @@ def train_ehr_model(
         "best_val_accuracy": best_val_accuracy,
         "total_training_time": total_time,
         "model_state_dict": best_model_state or model.state_dict(),
+        "loss_state_dict": criterion.state_dict(),
     }

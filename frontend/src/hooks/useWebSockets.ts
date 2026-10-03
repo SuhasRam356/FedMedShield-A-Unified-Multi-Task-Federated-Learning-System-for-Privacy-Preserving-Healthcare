@@ -9,7 +9,9 @@ export const useWebSockets = (taskId: number | null) => {
     if (!taskId) return;
 
     const token = localStorage.getItem('token');
-    const wsUrl = `ws://127.0.0.1:8000/ws/${taskId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsBase = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.host}`;
+    const wsUrl = `${wsBase}/ws/${taskId}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     
     ws.current = new WebSocket(wsUrl);
 

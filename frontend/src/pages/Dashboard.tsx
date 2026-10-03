@@ -177,9 +177,14 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight text-white">Dashboard</h1>
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              Simulation & Live Monitor Demo Mode
+            </span>
+          </div>
           <p className="text-textMuted mt-1">
-            Monitor federated learning orchestration and real-time metrics.
+            Monitor federated learning orchestration, live curves, and simulated multi-task telemetry.
           </p>
         </div>
         

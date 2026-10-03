@@ -65,7 +65,7 @@ async def predict_ehr_risk(
     if not interventions:
         interventions.append("Simulation Note: Vital parameters within standard simulated baseline range.")
 
-    return {
+    result = {
         "patient_id": patient.patient_id or "PT-88219",
         "sepsis_risk_score": sepsis_risk,
         "sepsis_risk_category": sepsis_cat,
@@ -77,4 +77,49 @@ async def predict_ehr_risk(
         "disclaimer": "RESEARCH DEMONSTRATION ONLY — Not for clinical or diagnostic decision-making. Outputs are synthetic heuristic estimates and do not constitute medical advice or validated inference.",
         "is_synthetic_simulation": True
     }
+    
+    # Store in session history
+    HISTORY_STORE.append({
+        "patientId": result["patient_id"],
+        "hospitalId": "hospital-a",
+        "predictions": {
+            "diabetes": 0.12,
+            "heartDisease": 0.18,
+            "cancer": 0.04,
+            "other": 0.08
+        },
+        "primaryDiagnosis": "Systemic Inflammatory Response (Simulated)" if sepsis_risk > 0.6 else "Normal Baseline (Simulated)",
+        "confidence": result["confidence"],
+        "timestamp": "2026-10-03T12:00:00Z"
+    })
+    if len(HISTORY_STORE) > 50:
+        HISTORY_STORE.pop(0)
+
+    return result
+
+
+HISTORY_STORE = [
+    {
+        "patientId": "PT-10492",
+        "hospitalId": "hospital-a",
+        "predictions": {"diabetes": 0.68, "heartDisease": 0.22, "cancer": 0.05, "other": 0.05},
+        "primaryDiagnosis": "Type 2 Diabetes Mellitus (Simulated)",
+        "confidence": 0.91,
+        "timestamp": "2026-10-02T14:30:00Z"
+    },
+    {
+        "patientId": "PT-20511",
+        "hospitalId": "hospital-b",
+        "predictions": {"diabetes": 0.15, "heartDisease": 0.74, "cancer": 0.03, "other": 0.08},
+        "primaryDiagnosis": "Coronary Artery Disease (Simulated)",
+        "confidence": 0.88,
+        "timestamp": "2026-10-02T16:15:00Z"
+    }
+]
+
+
+@router.get("/history")
+async def get_prediction_history(current_user: dict = Depends(get_current_user)):
+    """Returns recent clinical prediction history for the authenticated user/hospital."""
+    return HISTORY_STORE
 

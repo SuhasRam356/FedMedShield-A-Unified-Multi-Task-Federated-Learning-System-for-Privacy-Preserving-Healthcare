@@ -1333,11 +1333,15 @@ This project is grounded in peer-reviewed research:
 
 ---
 
-## 📄 License
+## 📄 License & Data Provenance
 
-This project is developed for **IEEE panel evaluation and academic research purposes**.
+This project is open-source software licensed under the **Apache License, Version 2.0**. See the [`LICENSE`](file:///d:/FedCare/LICENSE) file for complete terms and disclaimers.
 
-All code is original and written specifically for the FedMedShield project. No patient data — real or derived — is used at any point. All training data is synthetically generated.
+### Dataset & Clinical Provenance Notice
+- **Default Synthetic Data:** All default training, benchmarking, and demonstration pipelines execute on **synthetically generated data** designed for functional verification and architectural benchmarking.
+- **External Datasets Not Bundled:** Real-world biomedical and network datasets (such as MIMIC-IV EHR records, BraTS MRI scans, Kaggle Glaucoma/Chest X-Ray archives, and NSL-KDD traffic logs) are **not bundled** with this repository.
+- **Ethical & Regulatory Compliance:** Researchers supplying real patient or clinical data must ensure proper Institutional Review Board (IRB) oversight, execute required Data Use Agreements (DUAs), verify data provenance, and maintain compliance under HIPAA, GDPR, and local health information privacy frameworks.
+- **Research Prototype Disclaimer:** FedMedShield is an academic research prototype. Outputs and telemetry are intended for evaluation and must not be used as clinical diagnostic recommendations or in active patient treatment.
 
 ---
 

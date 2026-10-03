@@ -98,7 +98,7 @@ export const ImageUploadForm: React.FC<ImageUploadFormProps> = ({ onAnalyze, isL
           disabled={isLoading}
           className="px-6 py-2.5 bg-gradient-to-r from-accent to-primary text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-accent/30 transition-all disabled:opacity-50"
         >
-          {isLoading ? 'Analyzing Neural Heatmap...' : 'Execute ResNet50 Classifier'}
+          {isLoading ? 'Analyzing Neural Heatmap...' : 'Execute ResNet18 Classifier'}
         </button>
       </div>
     </form>

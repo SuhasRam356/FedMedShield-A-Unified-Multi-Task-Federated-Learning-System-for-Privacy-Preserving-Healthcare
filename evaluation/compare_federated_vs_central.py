@@ -36,7 +36,7 @@ class BenchmarkComparator:
                 "federated_fedmedshield": {
                     "auroc": 0.914,
                     "loss": 0.211,
-                    "privacy_leakage_risk": "Zero (RDP ε=2.5 + SecAgg)",
+                    "privacy_leakage_risk": "Mitigated (Simulated DP ε=2.5 + Masking)",
                     "dp_epsilon": 2.5
                 }
             },
@@ -47,7 +47,7 @@ class BenchmarkComparator:
                 "federated_fedmedshield": {
                     "accuracy": 0.936,
                     "loss": 0.174,
-                    "privacy_leakage_risk": "Zero (RDP ε=2.5 + SecAgg)",
+                    "privacy_leakage_risk": "Mitigated (Simulated DP ε=2.5 + Masking)",
                     "dp_epsilon": 2.5
                 }
             },
@@ -58,7 +58,7 @@ class BenchmarkComparator:
                 "federated_fedmedshield": {
                     "rmse": 0.76,
                     "r2_score": 0.80,
-                    "privacy_leakage_risk": "Zero (Encrypted Weights)",
+                    "privacy_leakage_risk": "Mitigated (Simulated Masking)",
                     "dp_epsilon": 2.5
                 }
             },
@@ -69,7 +69,7 @@ class BenchmarkComparator:
                 "federated_fedmedshield": {
                     "f1_score": 0.981,
                     "fpr": 0.008,
-                    "privacy_leakage_risk": "Zero (Decentralized IDS)",
+                    "privacy_leakage_risk": "Mitigated (Decentralized Local Training)",
                     "dp_epsilon": 2.5
                 }
             }
@@ -86,7 +86,7 @@ class BenchmarkComparator:
     def print_summary_table(self, benchmarks: Dict[str, Any]):
         """Prints a human-readable comparison ledger."""
         print("\n" + "=" * 80)
-        print(" FEDMEDSHIELD: FEDERATED VS CENTRALIZED HEALTHCARE BENCHMARK SUMMARY")
+        print(" FEDMEDSHIELD: FEDERATED VS CENTRALIZED HEALTHCARE BENCHMARK (ILLUSTRATIVE)")
         print("=" * 80)
         print(f"{'Module / Task':<32} | {'Centralized':<14} | {'FedMedShield (DP)':<18} | {'Utility Retention':<12}")
         print("-" * 80)
@@ -113,8 +113,8 @@ class BenchmarkComparator:
             print(f"{task_name:<32} | {c_val:<14} | {f_val:<18} | {retention:<12}")
 
         print("=" * 80)
-        print("CONCLUSION: FedMedShield retains >98% model utility while providing mathematical")
-        print("formal Differential Privacy (epsilon=2.5) and Bonawitz Secure Aggregation protection.")
+        print("NOTE: Illustrated synthetic reference targets for simulation demonstration.")
+        print("Empirical cross-silo trials require dataset-specific calibration and formal measurement.")
         print("=" * 80 + "\n")
 
 

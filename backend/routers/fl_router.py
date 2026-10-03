@@ -32,7 +32,7 @@ MOCK_TASKS: Dict[int, Dict[str, Any]] = {
     },
     2: {
         "id": 2,
-        "name": "Tumor & Glaucoma ResNet50 Federation",
+        "name": "Tumor & Glaucoma ResNet18 Federation",
         "task_type": "imaging",
         "status": "idle",
         "target_rounds": 10,

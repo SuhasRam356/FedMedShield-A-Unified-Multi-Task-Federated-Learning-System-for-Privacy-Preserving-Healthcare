@@ -73,8 +73,8 @@ class UnifiedHospitalClient:
             from modules.module1_ehr.ehr_model import MultiTaskEHRModel
             model = MultiTaskEHRModel()
         elif task_type in ["imaging", "imaging_tumor", "imaging_glaucoma"]:
-            from modules.module2_imaging.imaging_model import ResNet50MedicalClassifier
-            model = ResNet50MedicalClassifier(num_classes=2)
+            from modules.module2_imaging.imaging_model import MedicalImagingModel
+            model = MedicalImagingModel(num_classes=2)
         elif task_type == "drug":
             from modules.module3_drug.drug_model import DrugTargetInteractionModel
             model = DrugTargetInteractionModel()
