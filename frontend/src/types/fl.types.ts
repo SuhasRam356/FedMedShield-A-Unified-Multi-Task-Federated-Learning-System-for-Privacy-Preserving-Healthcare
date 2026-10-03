@@ -21,12 +21,12 @@ export type FLAlgorithm = 'FedAvg' | 'FedProx' | 'FedNova';
 export interface FLStatus {
   currentRound: number;
   totalRounds: number;
-  globalAccuracy: number;
+  globalAccuracy: number;       // ⬅️ Must match API response exactly
   globalLoss: number;
   activeHospitals: number;
   totalHospitals: number;
   privacyBudget: PrivacyBudget;
-  status: FLTrainingStatus;
+  status: 'idle' | 'running' | 'aggregating' | 'completed';
 }
 
 /** Single FL training round record */

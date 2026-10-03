@@ -131,3 +131,23 @@ async def stop_task(task_id: int):
 @router.get("/nodes", response_model=List[HospitalNodeInfo])
 async def list_nodes():
     return MOCK_HOSPITAL_NODES
+
+
+@router.get("/status")
+async def get_fl_status():
+    """Returns the current real-time FL network and aggregation status."""
+    return {
+        "currentRound": 3,
+        "totalRounds": 20,
+        "globalAccuracy": 0.934,
+        "globalLoss": 0.178,
+        "activeHospitals": 4,
+        "totalHospitals": 4,
+        "privacyBudget": {
+            "epsilon": 2.5,
+            "delta": 1e-5,
+            "noiseScale": 0.01,
+            "maxBudget": 10.0
+        },
+        "status": "running"
+    }

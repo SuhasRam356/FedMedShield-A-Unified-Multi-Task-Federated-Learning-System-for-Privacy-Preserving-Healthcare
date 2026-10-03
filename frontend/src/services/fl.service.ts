@@ -1,7 +1,11 @@
 import apiService from './api.service';
-import { FLTask, FLTaskCreateRequest, HospitalNode } from '../types/fl.types';
+import { FLStatus, FLTask, FLTaskCreateRequest, HospitalNode } from '../types/fl.types';
 
 export const flService = {
+  getStatus: async (): Promise<FLStatus> => {
+    return apiService.get<FLStatus>('/fl/status');
+  },
+
   getTasks: async (): Promise<FLTask[]> => {
     return apiService.get<FLTask[]>('/fl/tasks');
   },

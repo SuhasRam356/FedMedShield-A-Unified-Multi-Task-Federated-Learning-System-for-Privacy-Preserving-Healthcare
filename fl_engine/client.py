@@ -42,6 +42,23 @@ from privacy.secure_aggregation import SecureAggregationEngine
 logger = logging.getLogger(__name__)
 
 
+def safe_load_weights(model: torch.nn.Module, parameters: List[np.ndarray]) -> None:
+    """Always validate weight shapes before aggregation/loading into model."""
+    current_state = model.state_dict()
+    params_dict = zip(current_state.keys(), parameters)
+    state_dict = OrderedDict()
+    for k, v in params_dict:
+        expected_shape = current_state[k].shape
+        received_tensor = torch.tensor(v)
+        received_shape = received_tensor.shape
+        if expected_shape == received_shape:  # ✅ Shape check
+            state_dict[k] = received_tensor
+        else:
+            logger.warning(f"⚠️ Shape mismatch at {k}: expected {expected_shape}, got {received_shape}")
+            state_dict[k] = current_state[k]  # Keep old weight
+    model.load_state_dict(state_dict, strict=False)
+
+
 class HospitalClient(fl.client.NumPyClient):
     """
     Flower Client representing a hospital node.
@@ -104,11 +121,9 @@ class HospitalClient(fl.client.NumPyClient):
         return self.dataloaders[task_name]
 
     def set_parameters(self, task_name: str, parameters: List[np.ndarray]):
-        """Load weights from server into local model."""
+        """Load weights from server into local model with shape validation."""
         model = self._get_model(task_name)
-        params_dict = zip(model.state_dict().keys(), parameters)
-        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-        model.load_state_dict(state_dict, strict=True)
+        safe_load_weights(model, parameters)
 
     def get_parameters(self, task_name: str, config: Dict) -> List[np.ndarray]:
         """Extract weights from local model to send to server."""

@@ -98,8 +98,16 @@ class UnifiedHospitalClient:
         if self.local_model is None:
             raise RuntimeError("Local model has not been initialized. Call load_task_model first.")
 
-        # 1. Update local weights
-        self.local_model.load_state_dict(global_weights, strict=False)
+        # 1. Update local weights with shape validation
+        validated_weights = {}
+        current_state = self.local_model.state_dict()
+        for k, v in global_weights.items():
+            if k in current_state and current_state[k].shape == v.shape:
+                validated_weights[k] = v
+            elif k in current_state:
+                logger.warning(f"⚠️ Shape mismatch at {k}: expected {current_state[k].shape}, got {v.shape}")
+                validated_weights[k] = current_state[k]
+        self.local_model.load_state_dict(validated_weights, strict=False)
         self.local_model.train()
 
         optimizer = torch.optim.Adam(self.local_model.parameters(), lr=lr)

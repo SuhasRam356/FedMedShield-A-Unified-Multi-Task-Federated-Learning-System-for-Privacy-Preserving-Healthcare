@@ -15,14 +15,14 @@ export type HospitalModule =
   | 'ids';
 
 /** Operational status of a hospital node */
-export type HospitalStatus = 'active' | 'inactive' | 'training' | 'error';
+export type HospitalStatus = 'active' | 'inactive' | 'training' | 'error' | (string & {});
 
 /** A single hospital node in the federated network */
 export interface Hospital {
   id: string;
   name: string;
   location: string;
-  status: HospitalStatus;
+  status: HospitalStatus;     // ⬅️ Use the type alias
   modules: HospitalModule[];
   lastSeen: Date;
   localAccuracy: number;
