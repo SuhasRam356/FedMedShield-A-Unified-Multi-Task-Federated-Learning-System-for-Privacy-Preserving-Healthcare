@@ -80,11 +80,14 @@ export const DrugScreenForm: React.FC<DrugScreenFormProps> = ({ onScreen, isLoad
         {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
       </div>
 
-      <div className="flex justify-end pt-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-surfaceHighlight/50">
+        <p className="text-[11px] text-amber-300/80 leading-tight">
+          ⚠️ <strong>Privacy Notice:</strong> Submitting sends this SMILES structure to the central API server (<code className="text-amber-200">/api/drug/screen</code>). Do not submit proprietary or confidential chemical structures.
+        </p>
         <button
           type="submit"
           disabled={isLoading}
-          className="px-6 py-2.5 bg-gradient-to-r from-accent to-primary text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-accent/30 transition-all disabled:opacity-50"
+          className="shrink-0 px-6 py-2.5 bg-gradient-to-r from-accent to-primary text-white text-sm font-semibold rounded-lg shadow-lg hover:shadow-accent/30 transition-all disabled:opacity-50"
         >
           {isLoading ? 'Computing Binding Affinity...' : 'Screen Bioactivity & ADMET'}
         </button>

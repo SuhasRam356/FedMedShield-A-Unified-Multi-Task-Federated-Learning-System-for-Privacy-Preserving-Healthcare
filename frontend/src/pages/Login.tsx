@@ -45,12 +45,15 @@ export const Login: React.FC = () => {
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md bg-surface border border-surfaceHighlight rounded-2xl p-8 shadow-2xl relative z-10 backdrop-blur-md">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-accent to-primary flex items-center justify-center text-white mx-auto shadow-glow mb-4">
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-accent to-primary flex items-center justify-center text-white mx-auto shadow-glow mb-3">
             <ShieldAlert className="w-7 h-7" />
           </div>
+          <span className="inline-block px-3 py-1 mb-2 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-mono font-bold tracking-wider text-amber-300 uppercase">
+            Demo Prototype Sign-In
+          </span>
           <h1 className="text-2xl font-bold text-white tracking-tight">FedMedShield Portal</h1>
-          <p className="text-sm text-textMuted mt-1">Multi-Task Federated Healthcare Security</p>
+          <p className="text-sm text-textMuted mt-1">Multi-Task Federated Healthcare Security Simulation</p>
         </div>
 
         {error && (
@@ -97,14 +100,14 @@ export const Login: React.FC = () => {
             disabled={isLoading}
             className="w-full py-3 bg-gradient-to-r from-accent to-primary text-white font-semibold rounded-xl shadow-lg hover:shadow-accent/30 transition-all flex items-center justify-center space-x-2 mt-4"
           >
-            <span>{isLoading ? 'Authenticating...' : 'Sign In to Clinical Silo'}</span>
+            <span>{isLoading ? 'Authenticating...' : 'Sign In (Demo Prototype)'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         <div className="mt-6 pt-6 border-t border-surfaceHighlight text-center space-y-3">
           <div className="p-2.5 rounded-lg bg-surfaceHighlight/40 border border-surfaceHighlight/60 text-[11px] text-textMuted text-left space-y-1">
-            <span className="font-semibold text-textMain block">Demonstration Credentials:</span>
+            <span className="font-semibold text-textMain block">Evaluation Demonstration Accounts:</span>
             <div className="flex justify-between font-mono text-[10px]">
               <span>User: <strong className="text-white">dr_smith</strong></span>
               <span>Pass: <strong className="text-white">password123</strong></span>
@@ -114,7 +117,7 @@ export const Login: React.FC = () => {
               <span>Pass: <strong className="text-white">admin123</strong></span>
             </div>
           </div>
-          <span className="text-[11px] text-textMuted block">FedMedShield Healthcare Research & Simulation System</span>
+          <span className="text-[10px] text-amber-300/70 block">Demo credentials for simulation evaluation. Not an operational IAM service.</span>
         </div>
       </div>
     </div>

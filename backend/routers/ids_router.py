@@ -52,7 +52,7 @@ async def inspect_packet_flow(
         confidence=confidence,
         affected_node="Hospital Node Gateway (" + packet.dest_ip + ")",
         mitigation_action=mitigation,
-        disclaimer="RESEARCH DEMONSTRATION ONLY — Simulated detection rule. No active network mitigation, firewall rule, or certificate revocation was executed.",
+        disclaimer="DEMO / SYNTHETIC / NOT FOR CLINICAL OR SECURITY DECISIONS — Simulated detection rule. No active network mitigation, firewall rule, or certificate revocation was executed.",
         is_synthetic_simulation=True
     )
 

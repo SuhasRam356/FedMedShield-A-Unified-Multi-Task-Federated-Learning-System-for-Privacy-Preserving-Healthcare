@@ -60,7 +60,7 @@ async def analyze_image(
         detected_regions=regions,
         heatmap_available=True,
         inference_time_ms=elapsed_ms,
-        disclaimer="RESEARCH DEMONSTRATION ONLY — Not for diagnostic or radiological decision-making. Outputs are simulated demonstration values.",
+        disclaimer="DEMO / SYNTHETIC / NOT FOR CLINICAL OR SECURITY DECISIONS — Outputs are simulated demonstration values and do not constitute radiological or diagnostic findings.",
         is_synthetic_simulation=True
     )
 

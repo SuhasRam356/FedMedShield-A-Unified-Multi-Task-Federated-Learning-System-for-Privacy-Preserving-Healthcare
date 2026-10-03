@@ -15,14 +15,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_DEFAULT_SECRET = "fedmedshield-dev-secret-key-change-in-production"
+import secrets
+
 _ENV = os.getenv("ENVIRONMENT", "development").lower()
 SECRET_KEY = os.getenv("SECRET_KEY", "")
 
 if not SECRET_KEY:
     if _ENV in ("production", "prod"):
         raise RuntimeError("CRITICAL SECURITY ERROR: SECRET_KEY must be explicitly set in production.")
-    SECRET_KEY = _DEFAULT_SECRET
+    # Ephemeral random secret generated per process lifetime when not explicitly configured
+    SECRET_KEY = secrets.token_hex(32)
 
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))  # 24 hours

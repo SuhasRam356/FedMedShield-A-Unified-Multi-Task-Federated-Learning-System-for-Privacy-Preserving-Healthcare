@@ -170,7 +170,12 @@ async def _simulate_fl_rounds(task_id: int):
             task["status"] = "completed"
             FL_SYSTEM_STATE["status"] = "completed"
     except asyncio.CancelledError:
-        pass
+        task["status"] = "stopped"
+        FL_SYSTEM_STATE["status"] = "idle"
+    except Exception as exc:
+        task["status"] = "failed"
+        task["error_message"] = str(exc)
+        FL_SYSTEM_STATE["status"] = "failed"
 
 
 @router.post("/tasks/{task_id}/start")

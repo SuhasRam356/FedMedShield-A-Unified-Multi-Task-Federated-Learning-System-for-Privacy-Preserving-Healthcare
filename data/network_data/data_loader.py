@@ -593,18 +593,24 @@ class NetworkDataLoaderFactory:
 
         # Train/val/test split
         indices = np.arange(len(h_features))
+        unique_classes, counts = np.unique(h_labels, return_counts=True)
+        can_stratify = len(unique_classes) > 1 and int(np.min(counts)) >= 2
+
         train_idx, temp_idx = train_test_split(
             indices,
             test_size=self.val_ratio + self.test_ratio,
             random_state=self.random_seed,
-            stratify=h_labels,
+            stratify=h_labels if can_stratify else None,
         )
         relative_test = self.test_ratio / (self.val_ratio + self.test_ratio)
+        temp_classes, temp_counts = np.unique(h_labels[temp_idx], return_counts=True)
+        can_stratify_temp = len(temp_classes) > 1 and int(np.min(temp_counts)) >= 2
+
         val_idx, test_idx = train_test_split(
             temp_idx,
             test_size=relative_test,
             random_state=self.random_seed,
-            stratify=h_labels[temp_idx],
+            stratify=h_labels[temp_idx] if can_stratify_temp else None,
         )
 
         # Fit scaler on training data only

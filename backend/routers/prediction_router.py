@@ -74,7 +74,7 @@ async def predict_ehr_risk(
         "confidence": 0.942,
         "recommended_interventions": interventions,
         "model_version": "FedMedShield-EHR-Demo-v2.1",
-        "disclaimer": "RESEARCH DEMONSTRATION ONLY — Not for clinical or diagnostic decision-making. Outputs are synthetic heuristic estimates and do not constitute medical advice or validated inference.",
+        "disclaimer": "DEMO / SYNTHETIC / NOT FOR CLINICAL OR SECURITY DECISIONS — Outputs are synthetic heuristic estimates and do not constitute medical advice, diagnostic recommendations, or validated inference.",
         "is_synthetic_simulation": True
     }
     

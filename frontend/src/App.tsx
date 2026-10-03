@@ -40,12 +40,12 @@ function ProtectedLayout() {
       {/* Main Application Area */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         <Navbar />
-        <div className="bg-amber-950/60 border-b border-amber-500/30 px-6 py-2 text-[11px] text-amber-200 flex items-center justify-between shrink-0">
+        <div className="bg-amber-950/70 border-b border-amber-500/40 px-6 py-2 text-[11px] text-amber-200 flex items-center justify-between shrink-0 font-medium">
           <div className="flex items-center space-x-2">
-            <span className="font-bold uppercase tracking-wider text-amber-300">⚠️ Research Simulation:</span>
-            <span>Demonstration prototype only. All clinical predictions, drug scores, network alerts, and privacy telemetry are simulated heuristic values. Not for diagnostic, medical, or clinical decision-making.</span>
+            <span className="font-bold tracking-wider text-amber-300">DEMO / SYNTHETIC / NOT FOR CLINICAL OR SECURITY DECISIONS:</span>
+            <span>All clinical predictions, drug scores, network alerts, and privacy telemetry are simulated demonstration values. Not for diagnostic, pharmacological, or network defense decisions.</span>
           </div>
-          <span className="text-[10px] font-mono text-amber-300/80 ml-4 hidden lg:inline shrink-0">DEMO EVALUATION MODE</span>
+          <span className="text-[10px] font-mono text-amber-300/80 ml-4 hidden lg:inline shrink-0">DEMO PROTOTYPE</span>
         </div>
         <main className="flex-1 overflow-y-auto p-6 scroll-smooth">
           <Routes>

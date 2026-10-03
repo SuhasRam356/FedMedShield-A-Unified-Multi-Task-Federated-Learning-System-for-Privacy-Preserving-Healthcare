@@ -51,7 +51,7 @@ async def screen_compound(
         druggability_probability=druggability,
         safety_admet_flag=admet,
         recommendation=rec,
-        disclaimer="RESEARCH DEMONSTRATION ONLY — Not for pharmacological or clinical decision-making. Values are heuristic simulation estimates and not validated molecular chemistry.",
+        disclaimer="DEMO / SYNTHETIC / NOT FOR CLINICAL OR SECURITY DECISIONS — Values are heuristic simulation estimates and not validated molecular chemistry or pharmacological recommendations.",
         is_synthetic_simulation=True
     )
 
