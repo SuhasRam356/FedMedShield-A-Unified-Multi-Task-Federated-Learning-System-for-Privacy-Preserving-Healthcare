@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Environment variables
+.env
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PyTorch checkpoints
+checkpoints/
+*.pt
+*.pth
+*.npz
+
+# Evaluation output
+evaluation/plots/
+evaluation/results/*.pdf
+
+# Build output
+frontend/dist/

@@ -1,0 +1,74 @@
+{
+  "server_url": "http://127.0.0.1:8000",
+  "websocket_url": "ws://127.0.0.1:8000/ws",
+  "nodes": [
+    {
+      "client_id": "hospital_ny",
+      "name": "General Hospital - New York",
+      "region": "US-East",
+      "data_slices": {
+        "ehr_samples": 4500,
+        "imaging_samples": 1200,
+        "drug_samples": 850,
+        "network_samples": 15000
+      },
+      "compute_device": "cuda:0",
+      "local_epochs": 2,
+      "batch_size": 32,
+      "learning_rate": 0.001
+    },
+    {
+      "client_id": "hospital_chicago",
+      "name": "University Medical Center - Chicago",
+      "region": "US-Central",
+      "data_slices": {
+        "ehr_samples": 6200,
+        "imaging_samples": 1800,
+        "drug_samples": 1100,
+        "network_samples": 22000
+      },
+      "compute_device": "cuda:0",
+      "local_epochs": 2,
+      "batch_size": 32,
+      "learning_rate": 0.001
+    },
+    {
+      "client_id": "hospital_sf",
+      "name": "VA Medical Center - San Francisco",
+      "region": "US-West",
+      "data_slices": {
+        "ehr_samples": 3800,
+        "imaging_samples": 950,
+        "drug_samples": 600,
+        "network_samples": 12500
+      },
+      "compute_device": "cpu",
+      "local_epochs": 2,
+      "batch_size": 16,
+      "learning_rate": 0.001
+    },
+    {
+      "client_id": "hospital_austin",
+      "name": "Community Health Network - Austin",
+      "region": "US-South",
+      "data_slices": {
+        "ehr_samples": 2900,
+        "imaging_samples": 720,
+        "drug_samples": 450,
+        "network_samples": 9800
+      },
+      "compute_device": "cpu",
+      "local_epochs": 2,
+      "batch_size": 16,
+      "learning_rate": 0.001
+    }
+  ],
+  "privacy_defaults": {
+    "differential_privacy": true,
+    "epsilon": 2.5,
+    "delta": 1e-5,
+    "max_grad_norm": 1.0,
+    "secure_aggregation": true,
+    "secagg_protocol": "bonawitz_masking"
+  }
+}
