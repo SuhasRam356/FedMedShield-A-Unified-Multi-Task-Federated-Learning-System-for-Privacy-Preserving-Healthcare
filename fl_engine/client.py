@@ -8,6 +8,7 @@ applies Differential Privacy, and masks updates for Secure Aggregation.
 """
 
 import os
+import time
 import torch
 import flwr as fl
 from collections import OrderedDict
@@ -240,22 +241,52 @@ class HospitalClient(fl.client.NumPyClient):
         return float(loss), num_samples, metrics
 
 
-def start_client(client_id: str, server_address: str = "127.0.0.1:8080"):
-    """Entry point to start the flower client."""
+def start_client(
+    client_id: str,
+    server_address: str = "127.0.0.1:8080",
+    max_retries: int = 5,
+    retry_delay: int = 2
+):
+    """
+    Entry point to start the flower client.
+    Normalizes localhost to 127.0.0.1 to avoid Windows IPv6 resolution issues,
+    and adds retry logic to wait for the FL server if not yet ready.
+    """
+    # Normalize localhost / 0.0.0.0 to 127.0.0.1 to prevent Windows IPv6 [::1]:8080 connection failures
+    if "localhost:" in server_address:
+        server_address = server_address.replace("localhost:", "127.0.0.1:")
+    elif "0.0.0.0:" in server_address:
+        server_address = server_address.replace("0.0.0.0:", "127.0.0.1:")
+
     client = HospitalClient(client_id=client_id)
-    logger.info(f"Starting connection to server at {server_address}...")
+    logger.info(f"Connecting to FL server at {server_address}...")
     
-    fl.client.start_numpy_client(
-        server_address=server_address,
-        client=client,
-    )
-    
+    for attempt in range(1, max_retries + 1):
+        try:
+            fl.client.start_numpy_client(
+                server_address=server_address,
+                client=client,
+            )
+            break
+        except Exception as e:
+            if attempt < max_retries:
+                logger.warning(
+                    f"Connection attempt {attempt}/{max_retries} to {server_address} failed ({e}). "
+                    f"Waiting {retry_delay}s for server..."
+                )
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"Failed to connect to FL server at {server_address} after {max_retries} attempts.")
+                raise e
+
+
 if __name__ == "__main__":
     import argparse
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="FedMedShield Client")
     parser.add_argument("--id", type=str, required=True, help="Client ID (e.g., hospital-a)")
-    parser.add_argument("--server", type=str, default="127.0.0.1:8080", help="Server address")
+    parser.add_argument("--server", type=str, default="127.0.0.1:8080", help="Server address (default: 127.0.0.1:8080)")
+    parser.add_argument("--retries", type=int, default=5, help="Max connection retries")
     args = parser.parse_args()
     
-    start_client(args.id, args.server)
+    start_client(args.id, args.server, max_retries=args.retries)

@@ -8,6 +8,7 @@ metric aggregation across hospitals.
 """
 
 import os
+import time
 import torch
 import flwr as fl
 from flwr.server.client_proxy import ClientProxy
@@ -226,66 +227,100 @@ class SecureFedAvgStrategy(fl.server.strategy.FedAvg):
 
 def start_server(
     task_name: str = "ehr",
-    num_rounds: int = 5,
+    num_rounds: int = 20,
     num_hospitals: int = 4,
+    min_clients: int = 2,
+    round_timeout: int = 300,
     use_secagg: bool = True,
     use_dp: bool = True,
+    server_address: str = "0.0.0.0:8080",
+    strategy: Optional[fl.server.strategy.Strategy] = None,
 ):
-    """Entry point to start the FL server."""
+    """
+    Entry point to start the FL server.
+    Adds wait_for_clients delay and round_timeout to prevent premature start and client connection drops.
+    """
     logger.info(f"Starting FL Server for task: {task_name}")
+    logger.info(f"Configuration -> Host: {server_address} (0.0.0.0 NOT localhost), Rounds: {num_rounds}, Timeout: {round_timeout}s, Min Clients: {min_clients}")
     logger.info(f"Privacy Config -> DP: {use_dp}, SecAgg: {use_secagg}")
 
+    # Wait for clients to register and sockets to stabilize
+    logger.info("Waiting 2s for clients to register...")
+    time.sleep(2)  # Wait for clients to register
+
     # We need to initialize the global model with random weights to send to clients in Round 1
-    # We'll just instantiate the model class and extract its weights.
-    from flwr.common import ndarrays_to_parameters
-    
-    # Import the correct model based on task
-    if task_name == "ehr":
-        from modules.module1_ehr.ehr_model import EHRMultiTaskModel
-        initial_model = EHRMultiTaskModel()
-    elif task_name.startswith("imaging"):
-        from modules.module2_imaging.imaging_model import TumorDetector
-        initial_model = TumorDetector()  # Standardizes on 3-class for init
-    elif task_name == "drug":
-        from modules.module3_drug.drug_model import DrugProteinBindingModel
-        initial_model = DrugProteinBindingModel()
-    elif task_name == "ids":
-        from modules.module4_ids.ids_model import IntrusionDetectionModel
-        initial_model = IntrusionDetectionModel()
-    else:
-        raise ValueError(f"Unknown task: {task_name}")
+    if strategy is None:
+        from flwr.common import ndarrays_to_parameters
         
-    initial_weights = [val.cpu().numpy() for _, val in initial_model.state_dict().items()]
-    initial_parameters = ndarrays_to_parameters(initial_weights)
+        # Import the correct model based on task
+        if task_name == "ehr":
+            from modules.module1_ehr.ehr_model import EHRMultiTaskModel
+            initial_model = EHRMultiTaskModel()
+        elif task_name.startswith("imaging"):
+            from modules.module2_imaging.imaging_model import TumorDetector
+            initial_model = TumorDetector()  # Standardizes on 3-class for init
+        elif task_name == "drug":
+            from modules.module3_drug.drug_model import DrugProteinBindingModel
+            initial_model = DrugProteinBindingModel()
+        elif task_name == "ids":
+            from modules.module4_ids.ids_model import IntrusionDetectionModel
+            initial_model = IntrusionDetectionModel()
+        else:
+            raise ValueError(f"Unknown task: {task_name}")
+            
+        initial_weights = [val.cpu().numpy() for _, val in initial_model.state_dict().items()]
+        initial_parameters = ndarrays_to_parameters(initial_weights)
 
-    # Configure Strategy
-    strategy = SecureFedAvgStrategy(
-        task_name=task_name,
-        use_secagg=use_secagg,
-        use_dp=use_dp,
-        num_hospitals=num_hospitals,
-        fraction_fit=1.0,  # Train on all clients
-        fraction_evaluate=1.0,  # Eval on all clients
-        min_fit_clients=num_hospitals,
-        min_evaluate_clients=num_hospitals,
-        min_available_clients=num_hospitals,
-        initial_parameters=initial_parameters,
-    )
+        # Configure Strategy with lowered client thresholds so training succeeds even if clients fail
+        effective_min_clients = min(min_clients, num_hospitals)
+        strategy = SecureFedAvgStrategy(
+            task_name=task_name,
+            use_secagg=use_secagg,
+            use_dp=use_dp,
+            num_hospitals=num_hospitals,
+            fraction_fit=1.0,  # Train on all clients
+            fraction_evaluate=1.0,  # Eval on all clients
+            min_fit_clients=effective_min_clients,          # ⬅️ Lower this if clients fail
+            min_available_clients=effective_min_clients,    # ⬅️ Lower this too
+            min_evaluate_clients=effective_min_clients,
+            initial_parameters=initial_parameters,
+        )
 
-    # Start Server
+    # Start Server with 0.0.0.0 host and round timeout
+    logger.info(f"Binding FL server to {server_address}...")
     fl.server.start_server(
-        server_address="0.0.0.0:8080",
-        config=fl.server.ServerConfig(num_rounds=num_rounds),
+        server_address=server_address,  # Use 0.0.0.0 NOT localhost
+        config=fl.server.ServerConfig(
+            num_rounds=num_rounds,
+            round_timeout=round_timeout  # 5 min timeout per round
+        ),
         strategy=strategy,
     )
+
 
 if __name__ == "__main__":
     import argparse
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="FedMedShield Server")
     parser.add_argument("--task", type=str, default="ehr", help="Task to train (ehr, imaging_tumor, drug, ids)")
-    parser.add_argument("--rounds", type=int, default=5, help="Number of FL rounds")
-    parser.add_argument("--clients", type=int, default=4, help="Number of hospitals")
+    parser.add_argument("--rounds", type=int, default=20, help="Number of FL rounds (default: 20)")
+    parser.add_argument("--clients", type=int, default=4, help="Number of hospitals (default: 4)")
+    parser.add_argument("--min-clients", type=int, default=2, help="Minimum clients required (default: 2)")
+    parser.add_argument("--timeout", type=int, default=300, help="Round timeout in seconds (default: 300)")
+    parser.add_argument("--host", type=str, default="0.0.0.0", help="Server host IP (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8080, help="Server port (default: 8080)")
+    parser.add_argument("--no-secagg", action="store_true", help="Disable Secure Aggregation")
+    parser.add_argument("--no-dp", action="store_true", help="Disable Differential Privacy")
     args = parser.parse_args()
     
-    start_server(args.task, args.rounds, args.clients)
+    server_addr = f"{args.host}:{args.port}"
+    start_server(
+        task_name=args.task,
+        num_rounds=args.rounds,
+        num_hospitals=args.clients,
+        min_clients=args.min_clients,
+        round_timeout=args.timeout,
+        use_secagg=not args.no_secagg,
+        use_dp=not args.no_dp,
+        server_address=server_addr,
+    )

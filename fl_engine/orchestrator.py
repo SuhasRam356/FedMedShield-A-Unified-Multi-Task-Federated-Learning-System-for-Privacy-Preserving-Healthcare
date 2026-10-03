@@ -45,7 +45,11 @@ def start_network(task: str, rounds: int, clients: int):
         sys.executable, "fl_engine/server.py", 
         "--task", task, 
         "--rounds", str(rounds),
-        "--clients", str(clients)
+        "--clients", str(clients),
+        "--min-clients", str(min(2, clients)),
+        "--timeout", "300",
+        "--host", "0.0.0.0",
+        "--port", "8080"
     ]
     server_process = subprocess.Popen(server_cmd, env=env)
     processes.append(server_process)
