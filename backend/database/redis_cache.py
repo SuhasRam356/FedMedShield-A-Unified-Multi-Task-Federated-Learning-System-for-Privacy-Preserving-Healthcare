@@ -22,7 +22,7 @@ class MetricsCache:
     @staticmethod
     async def set_task_progress(task_id: int, current_round: int, total_rounds: int, current_loss: float):
         """Update the real-time progress of an FL task."""
-        redis = get_redis()
+        redis = await get_redis()
         if not redis:
             return
             
@@ -46,7 +46,7 @@ class MetricsCache:
     @staticmethod
     async def get_task_progress(task_id: int) -> Optional[Dict[str, Any]]:
         """Get the latest progress of an FL task."""
-        redis = get_redis()
+        redis = await get_redis()
         if not redis:
             return None
             
@@ -58,7 +58,7 @@ class MetricsCache:
     @staticmethod
     async def set_client_status(client_id: str, is_online: bool, current_task: Optional[int] = None):
         """Update whether a hospital node is online and computing."""
-        redis = get_redis()
+        redis = await get_redis()
         if not redis:
             return
             
@@ -80,7 +80,7 @@ class MetricsCache:
     @staticmethod
     async def get_active_clients() -> List[str]:
         """Get a list of all currently connected hospitals."""
-        redis = get_redis()
+        redis = await get_redis()
         if not redis:
             return []
             

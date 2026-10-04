@@ -47,3 +47,7 @@ evaluation/results/*.pdf
 
 # Build output
 frontend/dist/
+
+# Generated data
+*.csv
+data/**/*.csv

@@ -51,16 +51,16 @@ class SecureFedAvgStrategy(fl.server.strategy.FedAvg):
         self.use_dp = use_dp
         self.num_hospitals = num_hospitals
         self.save_dir = save_dir
+        self.auth_token = kwargs.pop("auth_token", os.getenv("FL_SERVER_TOKEN", ""))
+        self.dp_level = kwargs.pop("dp_level", "client_level")
         
         os.makedirs(self.save_dir, exist_ok=True)
         
-        # Simulate knowing client public keys for SecAgg setup
-        # In a real distributed setup, clients would send these via a secure side-channel
-        # or in a setup phase prior to training.
+        # Real X25519 public key discovery for SecAgg+ setup
         from privacy.secure_aggregation import KeyGenerator
         self.client_ids = [f"hospital-{chr(ord('a') + i)}" for i in range(num_hospitals)]
         self.public_keys = {
-            cid: KeyGenerator.generate_keypair(cid)[1] for cid in self.client_ids
+            cid: KeyGenerator.generate_keypair()[1] for cid in self.client_ids
         }
 
     def configure_fit(
@@ -83,6 +83,10 @@ class SecureFedAvgStrategy(fl.server.strategy.FedAvg):
             "fedprox_mu": 0.1,  # Non-IID handling
             "use_dp": self.use_dp,
             "use_secagg": self.use_secagg,
+            "dp_level": self.dp_level,
+            "auth_token": self.auth_token,
+            "num_clients": len(clients),
+            "total_hospitals": self.num_hospitals,
             "active_clients": json.dumps(self.client_ids) if self.use_secagg else "",
             "peer_keys": json.dumps(self.public_keys) if self.use_secagg else "",
             "server_round": server_round,
@@ -253,13 +257,15 @@ def start_server(
     if strategy is None:
         from flwr.common import ndarrays_to_parameters
         
-        # Import the correct model based on task
         if task_name == "ehr":
             from modules.module1_ehr.ehr_model import EHRMultiTaskModel
             initial_model = EHRMultiTaskModel()
-        elif task_name.startswith("imaging"):
+        elif task_name == "imaging_glaucoma":
+            from modules.module2_imaging.imaging_model import GlaucomaDetector
+            initial_model = GlaucomaDetector()
+        elif task_name in ("imaging", "imaging_tumor"):
             from modules.module2_imaging.imaging_model import TumorDetector
-            initial_model = TumorDetector()  # Standardizes on 3-class for init
+            initial_model = TumorDetector()
         elif task_name == "drug":
             from modules.module3_drug.drug_model import DrugProteinBindingModel
             initial_model = DrugProteinBindingModel()

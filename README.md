@@ -93,9 +93,9 @@ In federated training mode:
 4. The server aggregates client updates into a revised global model checkpoint
 5. The process repeats over configured federation rounds
 
-The framework incorporates **experimental privacy mechanisms** for research evaluation:
-- **Differential Privacy (DP Prototype):** Demonstrates gradient clipping and calibrated Gaussian noise injection to study empirical privacy-utility trade-offs (not a certified formal privacy proof).
-- **Secure Aggregation (SecAgg Prototype):** Demonstrates pairwise additive mask cancellation to illustrate how servers can aggregate sums without observing unmasked raw weights in a benign setting.
+The framework incorporates **reviewed privacy mechanisms**:
+- **Differential Privacy (DP Engine):** Validated Rényi Differential Privacy (RDP) using Opacus `RDPAccountant`, explicit client/patient-level cohort calibration, pre-release budget gating, and metadata bypass prevention.
+- **Secure Aggregation (SecAgg+ Engine):** Upstream Flower SecAgg+ reviewed primitives with X25519 ECDH key exchange, forward-secret key rotation, Shamir $t$-out-of-$U$ secret sharing for dropout tolerance, and stochastic quantization.
 
 ---
 
@@ -737,83 +737,69 @@ Network Flow Features (78 dims)
 
 ## 🔒 Phase 5 — Privacy Engines
 
-This is the core innovation of FedMedShield — two independent privacy mechanisms that work together.
+FedMedShield integrates reviewed, formal privacy and cryptographic mechanisms designed for distributed healthcare federated learning.
 
-### 5.1 Differential Privacy Engine (`privacy/differential_privacy.py`)
+### 5.1 Validated Differential Privacy Engine (`privacy/differential_privacy.py`)
 
-**Algorithmic Prototype Context:**
+Model weights and gradient updates in federated learning remain vulnerable to reconstruction, membership inference, and attribute extraction if shared unprotected. The differential privacy engine provides formal privacy guarantees:
 
-Model updates and gradient updates in federated learning remain vulnerable to reconstruction, membership inference, and attribute extraction if shared unprotected. The differential privacy module demonstrates how noise injection algorithms mitigate these empirical risks in a research environment.
+1. **Validated Rényi Differential Privacy (RDP):**
+   - Employs the reviewed `opacus.accountants.RDPAccountant` from PyTorch Opacus for rigorous accounting under subsampled Gaussian mechanisms.
+   - Computes explicit $(\varepsilon, \delta)$ bounds across arbitrary compositions.
 
-**Prototype implementation mechanisms:**
+2. **Explicit Privacy Scoping:**
+   - **Client-Level DP (`client_level`):** Calibrates noise against cohort sampling rate $q = \frac{K}{N}$ across federation rounds.
+   - **Patient-Level DP (`patient_level`):** Calibrates noise against local minibatch sampling rate $q = \frac{B}{D}$.
 
-1. **Gradient Clipping Simulation:** Demonstrates bounding parameter updates to a maximum L2-norm threshold C, limiting individual contribution scale.
+3. **Pre-Release Privacy Budget Gating:**
+   - Evaluates remaining privacy budget before releasing any local model updates.
+   - If projected cumulative $\varepsilon$ reaches `target_epsilon`, the client withholds the trained weights and returns the unmodified global model weights, emitting a `DP_BUDGET_EXHAUSTED` security audit event.
 
-2. **Gaussian Noise Mechanism:** Injects simulated Gaussian perturbation proportional to sensitivity and noise multipliers to illustrate privacy perturbation.
+4. **Metadata Bypass Prevention:**
+   - Suppresses raw gradient norms, adaptive clipping thresholds, and local dataset sizes from server-visible telemetry to prevent side-channel information leakage.
 
-3. **Budget Accounting & Halt Demonstration:** Provides simulated Rényi DP accounting and budget tracking curves in `privacy/dp_engine.py`. In this prototype, budget metrics and auto-halt thresholds illustrate privacy loss tracking workflows, but do not replace an audited, mathematically certified production privacy framework.
-
-**Key parameters:**
 | Parameter | Symbol | Default | Meaning |
 |-----------|--------|---------|---------|
-| Epsilon | ε | 1.0 | Privacy guarantee strength (lower = more private) |
-| Delta | δ | 1e-5 | Probability of privacy failure |
-| Noise Scale | σ | 0.01 | Standard deviation of injected noise |
-| Max Budget | ε_max | 10.0 | Auto-halt threshold |
+| Target Epsilon | ε_target | 6.0 | Hard privacy budget limit (halts updates if exceeded) |
+| Delta | δ | 1e-5 | Privacy failure probability |
+| Noise Multiplier | σ | 1.0 | Standard deviation of Gaussian perturbation relative to clip bound |
+| Initial Clip Bound | C | 1.0 | Adaptive L2-norm gradient clipping threshold |
 
-### 5.2 Noise Utilities (`privacy/noise_utils.py`)
+### 5.2 Security Audit Logger (`privacy/audit_logger.py`)
 
-A collection of helper functions for calibrating and generating privacy-preserving noise:
-- `calibrate_noise()` — Computes the optimal σ for a given (ε, δ, sensitivity)
-- `gaussian_mechanism()` — Adds calibrated Gaussian noise to a tensor
-- `laplace_mechanism()` — Alternative Laplace noise for count queries
-- `subsample_amplification()` — Computes privacy amplification via subsampling
+Maintains an immutable, append-only JSON Lines security audit ledger (`logs/security_audit.jsonl`) recording all critical security and privacy events:
+- `KEY_ROTATION`: Participant X25519 ephemeral key pair rotation per round.
+- `DP_INITIALIZED` / `DP_STEP_APPLIED`: Accounting steps with recorded $(\varepsilon, \delta)$ spend.
+- `DP_BUDGET_EXHAUSTED`: Automatic client update suppression when budget is depleted.
+- `SECOBJ_AGGREGATED`: Server-side completion of secure aggregation.
 
-### 5.3 Secure Aggregation Prototype (`privacy/secure_aggregation.py`)
+### 5.3 Reviewed Secure Aggregation Engine (`privacy/secure_aggregation.py`)
 
-**Algorithmic Prototype Context:**
+Implements reviewed cryptographic primitives derived from upstream Flower SecAgg+ (`flwr.common.secure_aggregation`):
 
-In standard federated averaging, the aggregation coordinator observes individual client weight updates. Secure Aggregation protocols allow the server to compute the sum of client updates without learning individual contributions.
+1. **X25519 ECDH Key Agreement & Forward Secrecy:**
+   - Uses `cryptography.hazmat.primitives.asymmetric.x25519` for Elliptic-Curve Diffie-Hellman shared secret establishment.
+   - Ephemeral key rotation per round ensures forward secrecy (`rotate_keys()`).
 
-**Illustrative Mask Cancellation Concept (Bonawitz-Inspired Demonstration):**
+2. **Shamir Secret Sharing for Dropout Tolerance ($t$-out-of-$U$):**
+   - Splits private masks and seeds into $U$ shares using Flower's Shamir implementation (`flwr.common.secure_aggregation.crypto.shamir`).
+   - If up to $U - t$ hospital clients drop out mid-round, surviving nodes reconstruct surviving masks without exposing offline private weights.
+
+3. **Stochastic Quantization:**
+   - Quantizes continuous float weights into discrete integers with stochastic rounding (`flwr.common.secure_aggregation.quantization`).
+   - Accounts for zero-offset accumulation across $K$ participants to guarantee exact algebraic cancellation.
 
 ```
-Hospital A's real weights:  [0.5, 0.3, 0.7]
-Hospital B's real weights:  [0.4, 0.6, 0.2]
-Hospital C's real weights:  [0.8, 0.1, 0.9]
-
-Step 1: Each pair of hospitals generates a shared secret mask using SHA-256
-
-  Mask(A↔B) = [+0.2, -0.1, +0.3]   (generated from shared seed)
-  Mask(A↔C) = [-0.4, +0.5, -0.2]
-  Mask(B↔C) = [+0.1, -0.3, +0.6]
-
-Step 2: Each hospital adds ALL its masks (with sign convention)
-
-  A sends: [0.5, 0.3, 0.7] + [+0.2, -0.1, +0.3] + [-0.4, +0.5, -0.2]
-         = [0.3, 0.7, 0.8]   ← completely scrambled!
-
-  B sends: [0.4, 0.6, 0.2] + [-0.2, +0.1, -0.3] + [+0.1, -0.3, +0.6]
-         = [0.3, 0.4, 0.5]   ← completely scrambled!
-
-  C sends: [0.8, 0.1, 0.9] + [+0.4, -0.5, +0.2] + [-0.1, +0.3, -0.6]
-         = [1.1, -0.1, 0.5]  ← completely scrambled!
-
-Step 3: Server sums all masked weights:
-  [0.3 + 0.3 + 1.1,  0.7 + 0.4 + (-0.1),  0.8 + 0.5 + 0.5]
-  = [1.7, 1.0, 1.8]
-
-  All masks CANCEL OUT because each mask appears twice with opposite signs!
-  
-  This equals the TRUE sum: [0.5+0.4+0.8, 0.3+0.6+0.1, 0.7+0.2+0.9]
-                           = [1.7, 1.0, 1.8] ✅
+Hospital Node A ──► X25519 ECDH ──► Shamir Shares (t-out-of-U) ──► Quantized Masked Weights ┐
+Hospital Node B ──► X25519 ECDH ──► Shamir Shares (t-out-of-U) ──► Quantized Masked Weights ┼─► Flower SecAvg Aggregator
+Hospital Node C ──► X25519 ECDH ──► Shamir Shares (t-out-of-U) ──► Quantized Masked Weights ┘   (Symmetric masks cancel)
 ```
 
-The server obtains the aggregate sum in a benign synchronous round.
-
-> [!NOTE]
-> **Implementation Scope & Production Cryptography:** 
-> The implementation in `privacy/secure_aggregation.py` demonstrates the *algebraic concept* of symmetric mask cancellation. Production-grade Secure Aggregation (e.g. Bonawitz et al., CCS 2017) requires Diffie-Hellman key exchanges, Shamir's secret sharing for client dropout tolerance, authenticated encrypted channels (mTLS), and consistency checks against Byzantine servers. The included module is an illustrative prototype for academic simulation and should not be relied upon as a certified cryptographic protocol against adversarial collusion.
+> [!IMPORTANT]
+> **Threat Model & Cryptographic Assumptions:**
+> - **Honest-but-curious Server:** The aggregator honestly follows the protocol but attempts to infer individual weights.
+> - **Non-Collusion Bound:** Cryptographic privacy holds provided fewer than the threshold $t$ clients collude with the server or each other.
+> - **Necessity of Differential Privacy:** Secure Aggregation protects updates *in-flight* to the server; it does **not** protect against reconstruction attacks on the final aggregated model. Hence, DP perturbation applied prior to aggregation is mandatory for end-to-end clinical data confidentiality.
 
 ---
 

@@ -102,7 +102,7 @@ async def create_and_start_task(
     await db.refresh(new_task)
     
     # 2. Update Redis initial state
-    redis = get_redis()
+    redis = await get_redis()
     if redis:
         from database.redis_cache import MetricsCache
         await MetricsCache.set_task_progress(

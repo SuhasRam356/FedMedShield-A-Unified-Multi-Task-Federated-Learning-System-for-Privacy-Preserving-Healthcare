@@ -66,9 +66,16 @@ class HospitalClient(fl.client.NumPyClient):
     It can train any of the 4 sub-models depending on server instructions.
     """
 
-    def __init__(self, client_id: str, device: str = "cuda" if torch.cuda.is_available() else "cpu"):
+    def __init__(
+        self,
+        client_id: str,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        auth_token: Optional[str] = None,
+        dp_level: str = "client_level",
+    ):
         self.client_id = client_id
         self.device = torch.device(device)
+        self.auth_token = auth_token or os.getenv("FL_CLIENT_TOKEN")
         
         logger.info(f"Initializing HospitalClient {client_id} on {self.device}...")
         
@@ -76,7 +83,8 @@ class HospitalClient(fl.client.NumPyClient):
         self.dp_engine = DifferentialPrivacyEngine(
             target_epsilon=5.0, 
             noise_multiplier=1.0, 
-            initial_max_norm=1.0
+            initial_max_norm=1.0,
+            dp_level=dp_level,
         )
         self.secagg_engine = SecureAggregationEngine(client_id=client_id)
         
@@ -87,6 +95,7 @@ class HospitalClient(fl.client.NumPyClient):
         # Mapping from string identifiers to model classes
         self.model_registry = {
             "ehr": EHRMultiTaskModel,
+            "imaging": TumorDetector,
             "imaging_tumor": TumorDetector,
             "imaging_glaucoma": GlaucomaDetector,
             "drug": DrugProteinBindingModel,
@@ -109,7 +118,7 @@ class HospitalClient(fl.client.NumPyClient):
             if task_name == "ehr":
                 factory = EHRDataLoaderFactory()
                 self.dataloaders[task_name] = factory.get_hospital_dataloaders(self.client_id)
-            elif task_name.startswith("imaging"):
+            elif task_name.startswith("imaging") or task_name == "imaging":
                 factory = ImagingDataLoaderFactory()
                 img_task = "glaucoma" if "glaucoma" in task_name else ("covid_xray" if "covid" in task_name else "tumor")
                 self.dataloaders[task_name] = factory.get_hospital_dataloaders(self.client_id, task=img_task)
@@ -145,9 +154,24 @@ class HospitalClient(fl.client.NumPyClient):
         
         logger.info(f"[{self.client_id}] FIT starting. Task: {task_name}, Epochs: {epochs}")
 
+        model = self._get_model(task_name)
+
+        # Assert parameter count and shapes before the first round
+        round_num = config.get("round", config.get("current_round", 1))
+        if round_num == 1:
+            current_state = model.state_dict()
+            assert len(parameters) == len(current_state), (
+                f"Round 1 param count mismatch for '{task_name}': "
+                f"expected {len(current_state)}, received {len(parameters)}"
+            )
+            for (p_name, tensor_val), arr_val in zip(current_state.items(), parameters):
+                assert tensor_val.shape == arr_val.shape, (
+                    f"Round 1 param shape mismatch for '{task_name}' on layer '{p_name}': "
+                    f"expected {tensor_val.shape}, received {arr_val.shape}"
+                )
+
         # 1. Update local model with global parameters
         self.set_parameters(task_name, parameters)
-        model = self._get_model(task_name)
         
         # Keep a copy of the global model for FedProx and DP pseudo-gradients
         global_model = self.model_registry[task_name]().to(self.device)
@@ -181,6 +205,12 @@ class HospitalClient(fl.client.NumPyClient):
                 num_epochs=epochs, global_model=global_model, fedprox_mu=fedprox_mu
             )
 
+        # Participant Authentication Check (if token required)
+        expected_token = config.get("auth_token", "")
+        if expected_token and self.auth_token and self.auth_token != expected_token:
+            logger.error(f"[{self.client_id}] Participant authentication failed: invalid token")
+            raise PermissionError(f"Client {self.client_id} unauthorized")
+
         # Ensure model has the best weights from training
         model.load_state_dict(results["model_state_dict"])
         final_state = model.state_dict()
@@ -189,9 +219,16 @@ class HospitalClient(fl.client.NumPyClient):
         metrics = {}
         if use_dp:
             logger.info(f"[{self.client_id}] Applying Differential Privacy...")
+            dp_level = config.get("dp_level", self.dp_engine.dp_level)
+            self.dp_engine.dp_level = dp_level
+            
             batch_size = getattr(train_loader, "batch_size", 32)
             total_samples = len(train_loader.dataset) if hasattr(train_loader, "dataset") else 1000
-            eff_sample_rate = batch_size / max(1, total_samples)
+            
+            if dp_level == "client_level":
+                eff_sample_rate = float(config.get("num_clients", 2) / max(1, config.get("total_hospitals", 4)))
+            else:
+                eff_sample_rate = float(batch_size / max(1, total_samples))
 
             final_state, dp_metrics = self.dp_engine.apply_dp(
                 local_model_state=final_state,
@@ -201,9 +238,12 @@ class HospitalClient(fl.client.NumPyClient):
             )
             metrics.update(dp_metrics)
             
-        # 5. Apply Secure Aggregation Masking
+        # 5. Apply Secure Aggregation Masking with Key Rotation
         if use_secagg:
             logger.info(f"[{self.client_id}] Applying Secure Aggregation Masking...")
+            fresh_pub_key = self.secagg_engine.rotate_keys()
+            metrics["secagg_public_key"] = fresh_pub_key
+
             active_clients_val = config.get("active_clients", "")
             peer_keys_val = config.get("peer_keys", "")
 
@@ -223,13 +263,23 @@ class HospitalClient(fl.client.NumPyClient):
         # 6. Extract numpy arrays to return to server
         # We must return them in the exact order as model.state_dict()
         updated_params = [val.cpu().numpy() for _, val in final_state.items()]
-        
-        # Number of samples is used by server for weighted averaging
         num_samples = len(train_loader.dataset)
         
+        # Suppress raw update norms, clipping bounds, and patient diagnostics from server metrics
+        sanitized_metrics = {
+            "loss": float(results.get("val_loss", 0.0)),
+            "accuracy": float(results.get("val_acc", 0.0)),
+            "current_epsilon": float(metrics.get("current_epsilon", 0.0)),
+            "target_epsilon": float(metrics.get("target_epsilon", 5.0)),
+            "budget_exhausted": bool(metrics.get("budget_exhausted", False)),
+            "dp_level": str(self.dp_engine.dp_level),
+        }
+        if "secagg_public_key" in metrics:
+            sanitized_metrics["secagg_public_key"] = metrics["secagg_public_key"]
+
         logger.info(f"[{self.client_id}] FIT complete. Sending {len(updated_params)} tensors.")
         
-        return updated_params, num_samples, metrics
+        return updated_params, num_samples, sanitized_metrics
 
     def evaluate(self, parameters: List[np.ndarray], config: Dict):
         """Evaluate the global model on local validation data."""

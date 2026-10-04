@@ -72,8 +72,17 @@ async def redis_listener(task_id: str):
         logger.info(f"Started Redis listener for {channel_name}")
 
         async for message in pubsub.listen():
-            if message["type"] == "message":
-                data = json.loads(message["data"])
+            if message and message.get("type") == "message":
+                raw_data = message.get("data")
+                if isinstance(raw_data, str):
+                    try:
+                        data = json.loads(raw_data)
+                    except Exception:
+                        data = {"raw": raw_data}
+                elif isinstance(raw_data, dict):
+                    data = raw_data
+                else:
+                    data = {"data": raw_data}
                 await manager.broadcast(task_id, data)
     except asyncio.CancelledError:
         logger.info(f"Redis listener for {channel_name} cancelled.")
@@ -82,6 +91,8 @@ async def redis_listener(task_id: str):
     finally:
         try:
             await pubsub.unsubscribe(channel_name)
+            if hasattr(pubsub, "close"):
+                await pubsub.close()
         except Exception:
             pass
 
@@ -104,6 +115,12 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str, token: Optional
     try:
         while True:
             data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_json({
+                    "type": "pong",
+                    "task_id": task_id,
+                    "status": "connected",
+                })
     except WebSocketDisconnect:
         manager.disconnect(websocket, task_id)
         listener_task.cancel()
